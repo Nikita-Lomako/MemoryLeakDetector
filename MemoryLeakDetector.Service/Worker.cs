@@ -1,23 +1,68 @@
+using MemoryLeakDetector.Core.Abstractions;
+using MemoryLeakDetector.Core.Options;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+
 namespace MemoryLeakDetector.Service
 {
     public class Worker : BackgroundService
     {
         private readonly ILogger<Worker> _logger;
+        private readonly IMonitoringCoordinator _monitoringCoordinator;
+        private readonly IMonitoringResultStream _resultStream;
+        private readonly IMonitoringResultMapper _resultMapper;
+        private readonly MonitoringOptions _options;
 
-        public Worker(ILogger<Worker> logger)
+        public Worker(
+            ILogger<Worker> logger,
+            IMonitoringCoordinator monitoringCoordinator,
+            IMonitoringResultStream resultStream,
+            IMonitoringResultMapper resultMapper,
+            IOptions<MonitoringOptions> options)
         {
             _logger = logger;
+            _monitoringCoordinator = monitoringCoordinator;
+            _resultStream = resultStream;
+            _resultMapper = resultMapper;
+            _options = options.Value;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            var delay = TimeSpan.FromMilliseconds(Math.Max(250, _options.PollingIntervalMilliseconds));
+
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (_logger.IsEnabled(LogLevel.Information))
+                try
                 {
-                    _logger.LogInformation("Worker running at: {time}", DateTimeOffset.Now);
+                    var result = await _monitoringCoordinator.RunCycleAsync(stoppingToken);
+                    await _resultStream.PublishAsync(_resultMapper.Map(result), stoppingToken);
+
+                    _logger.LogInformation(
+                        "Monitoring cycle finished in {Duration} — processes: {Processes}, leaks: {Leaks}, errors: {Errors}",
+                        result.Duration,
+                        result.ActiveProcessCount,
+                        result.LeakSuspicions,
+                        result.ErrorCount);
                 }
-                await Task.Delay(1000, stoppingToken);
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Monitoring cycle failed");
+                }
+
+                try
+                {
+                    await Task.Delay(delay, stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    break;
+                }
             }
         }
     }
