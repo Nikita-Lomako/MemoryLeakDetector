@@ -14,6 +14,8 @@ namespace MemoryLeakDetector.UI.Services.Data
             "msedge.exe", "winword.exe", "excel.exe", "outlook.exe"
         };
 
+        public event EventHandler? ProcessesUpdated;
+
         public IReadOnlyCollection<ProcessSnapshot> GetProcesses()
         {
             var processes = new List<ProcessSnapshot>();
@@ -38,6 +40,8 @@ namespace MemoryLeakDetector.UI.Services.Data
                     trend: trend
                 ));
             }
+
+            ProcessesUpdated?.Invoke(this, EventArgs.Empty);
 
             return processes;
         }

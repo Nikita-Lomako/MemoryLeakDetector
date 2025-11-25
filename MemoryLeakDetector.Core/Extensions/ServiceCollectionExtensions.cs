@@ -6,12 +6,15 @@ using MemoryLeakDetector.Core.Services.Metrics;
 using MemoryLeakDetector.Core.Services.Monitoring;
 using MemoryLeakDetector.Core.Services.Streaming;
 using Microsoft.Extensions.DependencyInjection;
+using System.Runtime.Versioning;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace MemoryLeakDetector.Core.Extensions;
 
+[SupportedOSPlatform("windows")]
 public static class ServiceCollectionExtensions
 {
+    [SupportedOSPlatform("windows")]
     public static IServiceCollection AddMemoryLeakDetectorCore(
         this IServiceCollection services,
         Action<MonitoringOptions>? configureOptions = null)
@@ -22,6 +25,7 @@ public static class ServiceCollectionExtensions
         }
 
         services.TryAddSingleton<IBaselineRepository, InMemoryBaselineRepository>();
+        services.TryAddSingleton<IGcMetricsProvider, DotNetGcMetricsProvider>();
         services.TryAddSingleton<IProcessMetricsCollector, ProcessMetricsCollector>();
         services.TryAddSingleton<ILeakDetectionStrategy, ThresholdLeakDetectionStrategy>();
         services.TryAddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();

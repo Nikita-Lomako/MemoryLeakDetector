@@ -16,7 +16,10 @@ namespace MemoryLeakDetector.UI.Models
             int handles,
             double baselineMb,
             bool isLeakSuspected,
-            IReadOnlyList<TrendPoint> trend)
+            IReadOnlyList<TrendPoint> trend,
+            double? cpuUsagePercent = null,
+            double? managedHeapMb = null,
+            double? gen2CollectionsPerSec = null)
         {
             Name = name;
             ProcessId = processId;
@@ -27,6 +30,9 @@ namespace MemoryLeakDetector.UI.Models
             _isLeakSuspected = isLeakSuspected;
             Trend = trend;
             UpdatedAt = DateTime.Now;
+            CpuUsagePercent = cpuUsagePercent;
+            ManagedHeapMb = managedHeapMb;
+            Gen2CollectionsPerSec = gen2CollectionsPerSec;
         }
 
         public string Name { get; }
@@ -35,6 +41,9 @@ namespace MemoryLeakDetector.UI.Models
         public double VirtualMemoryMb { get; }
         public int Handles { get; }
         public double BaselineMb { get; }
+        public double? CpuUsagePercent { get; }
+        public double? ManagedHeapMb { get; }
+        public double? Gen2CollectionsPerSec { get; }
 
         public bool IsLeakSuspected
         {

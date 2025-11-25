@@ -5,7 +5,9 @@ using MemoryLeakDetector.UI.Services.Data;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Windows;
 using System.Windows.Data;
+using System.Windows.Threading;
 
 namespace MemoryLeakDetector.UI.ViewModels
 {
@@ -13,6 +15,7 @@ namespace MemoryLeakDetector.UI.ViewModels
     {
         private readonly IProcessDataProvider _dataProvider;
         private readonly ObservableCollection<ProcessSnapshot> _processes;
+        private readonly Dispatcher _dispatcher;
 
         [ObservableProperty]
         private DateTime _lastUpdated;
@@ -24,11 +27,13 @@ namespace MemoryLeakDetector.UI.ViewModels
         {
             _dataProvider = dataProvider;
             _processes = new ObservableCollection<ProcessSnapshot>();
+            _dispatcher = Application.Current?.Dispatcher ?? Dispatcher.CurrentDispatcher;
 
             ProcessesView = CollectionViewSource.GetDefaultView(_processes);
             ProcessesView.Filter = OnFilterProcess;
 
             RefreshCommand = new RelayCommand(Refresh);
+            _dataProvider.ProcessesUpdated += (_, _) => Refresh();
 
             Refresh();
         }
@@ -44,15 +49,28 @@ namespace MemoryLeakDetector.UI.ViewModels
 
         private void Refresh()
         {
-            _processes.Clear();
+            var snapshots = _dataProvider.GetProcesses();
 
-            foreach (var snapshot in _dataProvider.GetProcesses())
+            void Apply()
             {
-                _processes.Add(snapshot);
+                _processes.Clear();
+                foreach (var snapshot in snapshots)
+                {
+                    _processes.Add(snapshot);
+                }
+
+                LastUpdated = DateTime.Now;
+                ProcessesView.Refresh();
             }
 
-            LastUpdated = DateTime.Now;
-            ProcessesView.Refresh();
+            if (!_dispatcher.CheckAccess())
+            {
+                _dispatcher.Invoke(Apply);
+            }
+            else
+            {
+                Apply();
+            }
         }
 
         private bool OnFilterProcess(object obj)

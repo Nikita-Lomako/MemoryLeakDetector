@@ -16,7 +16,12 @@ public sealed class MonitoringResultMapper : IMonitoringResultMapper
                 WorkingSetMb = snapshot.WorkingSetMb,
                 VirtualMemoryMb = snapshot.VirtualMemoryMb,
                 HandleCount = snapshot.HandleCount,
-                CapturedAtUtc = snapshot.CapturedAtUtc
+                CapturedAtUtc = snapshot.CapturedAtUtc,
+                CpuUsagePercent = snapshot.CpuUsagePercent,
+                GcHeapSizeMb = snapshot.GcMetrics?.HeapSizeMb,
+                LargeObjectHeapMb = snapshot.GcMetrics?.LargeObjectHeapMb,
+                Gen0CollectionsPerSec = snapshot.GcMetrics?.Gen0CollectionsPerSec,
+                Gen2CollectionsPerSec = snapshot.GcMetrics?.Gen2CollectionsPerSec
             })
             .ToList();
 
