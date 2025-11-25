@@ -1,0 +1,95 @@
+﻿<Window x:Class="MemoryLeakDetector.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="MemoryLeak Detector"
+        Height="720"
+        Width="1200"
+        MinWidth="1024"
+        MinHeight="640"
+        Background="{StaticResource SurfaceBrush}"
+        Foreground="White"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="240" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Background="{StaticResource SecondarySurfaceBrush}"
+                BorderBrush="{StaticResource CardBorderBrush}"
+                BorderThickness="0,0.5,0.5,0"
+                Grid.RowSpan="2">
+            <Border Padding="16">
+                <DockPanel>
+                    <StackPanel DockPanel.Dock="Top">
+                        <TextBlock Text="MemoryLeak Detector"
+                                   FontSize="20"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="Мониторинг утечек памяти"
+                                   Opacity="0.7"
+                                   Margin="0,4,0,16" />
+                    </StackPanel>
+
+                    <ListBox ItemsSource="{Binding NavigationItems}"
+                             SelectedItem="{Binding SelectedNavigation}"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Foreground="White">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel Margin="0,6">
+                                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding Description}" Opacity="0.7" FontSize="12" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </Border>
+
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Border Background="#101828">
+                <Border Padding="16">
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Left">
+                            <TextBlock Text="{Binding SelectedNavigation.Title}"
+                                       FontSize="26"
+                                       FontWeight="SemiBold" />
+                            <TextBlock Text="{Binding SelectedNavigation.Description}"
+                                       Opacity="0.7" />
+                        </StackPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Ellipse Width="12" Height="12" Fill="{StaticResource AccentBrush}" Margin="0,0,8,0" />
+                            <TextBlock Text="Real-time monitoring" Opacity="0.7" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </DockPanel>
+                </Border>
+            </Border>
+
+            <Border Grid.Row="1"
+                    Margin="0"
+                    Padding="0"
+                    Background="Transparent">
+                <ContentControl Content="{Binding CurrentViewModel}" />
+            </Border>
+        </Grid>
+
+        <StatusBar Grid.Row="1" Grid.Column="1" Background="#0B1220" Foreground="White">
+            <StatusBarItem Content="Поддержка: Windows 10/11 · x64 / ARM64" />
+            <StatusBarItem HorizontalAlignment="Right" Content="MIT License" />
+        </StatusBar>
+    </Grid>
+</Window>

@@ -1,0 +1,51 @@
+<UserControl x:Class="MemoryLeakDetector.UI.Views.ProcessesView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="600">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+            <TextBox Width="220"
+                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                     Margin="0,0,12,0"
+                     ToolTip="Поиск по имени или PID" />
+            <Button Content="Обновить"
+                    Command="{Binding RefreshCommand}" />
+            <TextBlock Text="{Binding LastUpdated, StringFormat=Обновлено {0:G}}"
+                       Margin="16,4,0,0"
+                       Opacity="0.6" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="1"
+                  ItemsSource="{Binding ProcessesView}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column"
+                  CanUserAddRows="False"
+                  Background="{DynamicResource ControlBackgroundBrush}"
+                  BorderBrush="{StaticResource CardBorderBrush}"
+                  RowBackground="{x:Null}"
+                  AlternatingRowBackground="#111827">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Процесс" Binding="{Binding Name}" Width="*" />
+                <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="100" />
+                <DataGridTextColumn Header="Working Set" Binding="{Binding WorkingSetMb, StringFormat={}{0:F0} MB}" Width="140" />
+                <DataGridTextColumn Header="Virtual Memory" Binding="{Binding VirtualMemoryMb, StringFormat={}{0:F0} MB}" Width="160" />
+                <DataGridTextColumn Header="Handles" Binding="{Binding Handles}" Width="100" />
+                <DataGridTextColumn Header="Baseline" Binding="{Binding BaselineMb, StringFormat={}{0:F0} MB}" Width="120" />
+                <DataGridTextColumn Header="Рост" Binding="{Binding GrowthPercentage, StringFormat={}{0:F1}%}" Width="90" />
+                <DataGridCheckBoxColumn Header="Leak?"
+                                        Binding="{Binding IsLeakSuspected}"
+                                        Width="90" />
+            </DataGrid.Columns>
+        </DataGrid>
+    </Grid>
+</UserControl>
+
