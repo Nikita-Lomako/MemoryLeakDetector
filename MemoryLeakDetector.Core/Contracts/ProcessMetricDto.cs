@@ -8,5 +8,10 @@ public sealed class ProcessMetricDto
     public double VirtualMemoryMb { get; init; }
     public int HandleCount { get; init; }
     public DateTime CapturedAtUtc { get; init; }
+    public double? CpuUsagePercent { get; init; }
+    public double? GcHeapSizeMb { get; init; }
+    public double? LargeObjectHeapMb { get; init; }
+    public double? Gen0CollectionsPerSec { get; init; }
+    public double? Gen2CollectionsPerSec { get; init; }
 }
 

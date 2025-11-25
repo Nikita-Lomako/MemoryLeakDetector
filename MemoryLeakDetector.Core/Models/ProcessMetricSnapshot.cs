@@ -8,7 +8,9 @@ public sealed class ProcessMetricSnapshot
         double workingSetMb,
         double virtualMemoryMb,
         int handleCount,
-        DateTime capturedAtUtc)
+        DateTime capturedAtUtc,
+        double? cpuUsagePercent = null,
+        GcMetrics? gcMetrics = null)
     {
         ProcessId = processId;
         ProcessName = processName;
@@ -16,6 +18,8 @@ public sealed class ProcessMetricSnapshot
         VirtualMemoryMb = virtualMemoryMb;
         HandleCount = handleCount;
         CapturedAtUtc = capturedAtUtc;
+        CpuUsagePercent = cpuUsagePercent;
+        GcMetrics = gcMetrics;
     }
 
     public int ProcessId { get; }
@@ -24,5 +28,7 @@ public sealed class ProcessMetricSnapshot
     public double VirtualMemoryMb { get; }
     public int HandleCount { get; }
     public DateTime CapturedAtUtc { get; }
+    public double? CpuUsagePercent { get; }
+    public GcMetrics? GcMetrics { get; }
 }
 

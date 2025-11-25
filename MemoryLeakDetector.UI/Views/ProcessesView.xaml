@@ -39,6 +39,8 @@
                 <DataGridTextColumn Header="Working Set" Binding="{Binding WorkingSetMb, StringFormat={}{0:F0} MB}" Width="140" />
                 <DataGridTextColumn Header="Virtual Memory" Binding="{Binding VirtualMemoryMb, StringFormat={}{0:F0} MB}" Width="160" />
                 <DataGridTextColumn Header="Handles" Binding="{Binding Handles}" Width="100" />
+                <DataGridTextColumn Header="CPU" Binding="{Binding CpuUsagePercent, StringFormat={}{0:F1}%}" Width="80" />
+                <DataGridTextColumn Header="Managed Heap" Binding="{Binding ManagedHeapMb, StringFormat={}{0:F0} MB}" Width="140" />
                 <DataGridTextColumn Header="Baseline" Binding="{Binding BaselineMb, StringFormat={}{0:F0} MB}" Width="120" />
                 <DataGridTextColumn Header="Рост" Binding="{Binding GrowthPercentage, StringFormat={}{0:F1}%}" Width="90" />
                 <DataGridCheckBoxColumn Header="Leak?"
