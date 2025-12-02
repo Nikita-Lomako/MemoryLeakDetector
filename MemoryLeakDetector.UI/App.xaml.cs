@@ -29,6 +29,7 @@ namespace MemoryLeakDetector.UI
 
             services.AddSingleton<DashboardViewModel>();
             services.AddSingleton<ProcessesViewModel>();
+            services.AddSingleton<AnalyticsViewModel>();
             services.AddSingleton<ShellViewModel>();
 
             services.AddSingleton<MainWindow>(provider => new MainWindow

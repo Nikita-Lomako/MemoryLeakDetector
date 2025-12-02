@@ -19,7 +19,11 @@ namespace MemoryLeakDetector.UI.Models
             IReadOnlyList<TrendPoint> trend,
             double? cpuUsagePercent = null,
             double? managedHeapMb = null,
-            double? gen2CollectionsPerSec = null)
+            double? gen2CollectionsPerSec = null,
+            string? leakReason = null,
+            string? stackTrace = null,
+            string? detectionStrategy = null,
+            double? anomalyScore = null)
         {
             Name = name;
             ProcessId = processId;
@@ -33,6 +37,10 @@ namespace MemoryLeakDetector.UI.Models
             CpuUsagePercent = cpuUsagePercent;
             ManagedHeapMb = managedHeapMb;
             Gen2CollectionsPerSec = gen2CollectionsPerSec;
+            LeakReason = leakReason;
+            StackTrace = stackTrace;
+            DetectionStrategy = detectionStrategy;
+            AnomalyScore = anomalyScore;
         }
 
         public string Name { get; }
@@ -44,6 +52,11 @@ namespace MemoryLeakDetector.UI.Models
         public double? CpuUsagePercent { get; }
         public double? ManagedHeapMb { get; }
         public double? Gen2CollectionsPerSec { get; }
+
+        public string? LeakReason { get; }
+        public string? StackTrace { get; }
+        public string? DetectionStrategy { get; }
+        public double? AnomalyScore { get; }
 
         public bool IsLeakSuspected
         {
