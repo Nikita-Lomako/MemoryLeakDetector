@@ -60,7 +60,11 @@ namespace MemoryLeakDetector.UI.Services.Data
                         new ReadOnlyCollection<TrendPoint>(trend.ToList()),
                         process.CpuUsagePercent,
                         process.GcHeapSizeMb,
-                        process.Gen2CollectionsPerSec));
+                        process.Gen2CollectionsPerSec,
+                        insight?.Reason,
+                        insight?.StackTrace,
+                        insight?.DetectionStrategy,
+                        insight?.AnomalyScore));
                 }
 
                 _current = snapshots;

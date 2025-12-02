@@ -10,12 +10,16 @@ namespace MemoryLeakDetector.UI.ViewModels
         private NavigationItem? _selectedNavigation;
         private ObservableObject? _currentViewModel;
 
-        public ShellViewModel(DashboardViewModel dashboardViewModel, ProcessesViewModel processesViewModel)
+        public ShellViewModel(
+            DashboardViewModel dashboardViewModel,
+            ProcessesViewModel processesViewModel,
+            AnalyticsViewModel analyticsViewModel)
         {
             NavigationItems = new ObservableCollection<NavigationItem>
             {
                 new("Dashboard", "Общий статус мониторинга", dashboardViewModel),
-                new("Processes", "Активные процессы и метрики", processesViewModel)
+                new("Processes", "Активные процессы и метрики", processesViewModel),
+                new("Analytics", "Графики, утечки и рекомендации", analyticsViewModel)
             };
 
             SelectedNavigation = NavigationItems.FirstOrDefault();

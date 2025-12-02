@@ -43,6 +43,9 @@
             <DataTemplate DataType="{x:Type vm:ProcessesViewModel}">
                 <views:ProcessesView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:AnalyticsViewModel}">
+                <views:AnalyticsView />
+            </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

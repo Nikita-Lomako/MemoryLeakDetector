@@ -1,0 +1,126 @@
+<UserControl x:Class="MemoryLeakDetector.UI.Views.AnalyticsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:sp="clr-namespace:ScottPlot.WPF;assembly=ScottPlot.WPF"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="600">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="2*" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <DockPanel Grid.Row="0" Margin="0,0,0,12">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                <TextBlock Text="Аналитика памяти"
+                           FontSize="22"
+                           FontWeight="SemiBold" />
+                <TextBlock Text="{Binding LastUpdated, StringFormat= · Обновлено {0:G}}"
+                           Margin="8,4,0,0"
+                           Opacity="0.7" />
+            </StackPanel>
+            <Button Content="Обновить"
+                    Command="{Binding RefreshCommand}"
+                    DockPanel.Dock="Right"
+                    Padding="16,8"
+                    Margin="8,0,0,0" />
+        </DockPanel>
+
+        <Border Grid.Row="1"
+                Padding="16"
+                Background="{DynamicResource ControlBackgroundBrush}"
+                CornerRadius="8">
+            <StackPanel>
+                <TextBlock Text="Сводный тренд Working Set / Virtual Memory"
+                           FontSize="18"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,8" />
+
+                <sp:WpfPlot x:Name="MemoryPlot" MinHeight="300" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="2" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Padding="16"
+                    Background="{DynamicResource ControlBackgroundBrush}"
+                    CornerRadius="8"
+                    Margin="0,0,16,0">
+                <StackPanel>
+                    <TextBlock Text="Подозрительные процессы / возможные утечки"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding LeakProcesses}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Margin="0,4"
+                                            Padding="8"
+                                            BorderBrush="{StaticResource CardBorderBrush}"
+                                            BorderThickness="1"
+                                            CornerRadius="6">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                                <TextBlock Text="{Binding Name}"
+                                                           FontWeight="SemiBold" />
+                                                <TextBlock Text="{Binding ProcessId, StringFormat= (PID {0})}"
+                                                           Margin="8,0,0,0"
+                                                           Opacity="0.7" />
+                                                <TextBlock Text="{Binding GrowthPercentage, StringFormat= · {0:F1}%}"
+                                                           Margin="8,0,0,0"
+                                                           Foreground="{Binding IsLeakSuspected, Converter={StaticResource BooleanToBrushConverter}}" />
+                                            </StackPanel>
+                                            <TextBlock Text="{Binding LeakReason}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       Opacity="0.8" />
+                                            <TextBlock Text="{Binding StackTrace}"
+                                                       Margin="0,4,0,0"
+                                                       TextWrapping="Wrap"
+                                                       FontFamily="Consolas"
+                                                       FontSize="10"
+                                                       Opacity="0.7" />
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1"
+                    Padding="16"
+                    Background="{DynamicResource ControlBackgroundBrush}"
+                    CornerRadius="8">
+                <StackPanel>
+                    <TextBlock Text="Рекомендации по исправлению"
+                               FontSize="18"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,8" />
+
+                    <ItemsControl ItemsSource="{Binding Recommendations}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>
+
+
