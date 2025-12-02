@@ -6,11 +6,13 @@
              xmlns:converters="clr-namespace:MemoryLeakDetector.UI.Converters">
     <Application.Resources>
         <ResourceDictionary>
-            <SolidColorBrush x:Key="SurfaceBrush" Color="#0F172A" />
-            <SolidColorBrush x:Key="SecondarySurfaceBrush" Color="#1E293B" />
-            <SolidColorBrush x:Key="AccentBrush" Color="#38BDF8" />
-            <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#14213D" />
-            <SolidColorBrush x:Key="CardBorderBrush" Color="#1F2937" />
+            <!-- Основная зелёная палитра -->
+            <!-- #00B64F	#22884F	#007633	#37DA7E	#62DA97 -->
+            <SolidColorBrush x:Key="SurfaceBrush" Color="#007633" />          <!-- Фон окна -->
+            <SolidColorBrush x:Key="SecondarySurfaceBrush" Color="#22884F" /> <!-- Боковые панели / карточки -->
+            <SolidColorBrush x:Key="AccentBrush" Color="#37DA7E" />           <!-- Акценты / индикаторы -->
+            <SolidColorBrush x:Key="ControlBackgroundBrush" Color="#00B64F" /><!-- Фон контролов/панелей -->
+            <SolidColorBrush x:Key="CardBorderBrush" Color="#62DA97" />       <!-- Границы карточек/таблиц -->
 
             <Style x:Key="MetricCardStyle" TargetType="Border">
                 <Setter Property="Background" Value="{StaticResource SecondarySurfaceBrush}" />

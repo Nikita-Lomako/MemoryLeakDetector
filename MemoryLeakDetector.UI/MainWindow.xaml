@@ -14,7 +14,8 @@
         WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240" />
+            <!-- Левая навигационная панель фиксированной ширины, контентная область занимает всё остальное -->
+            <ColumnDefinition Width="260" />
             <ColumnDefinition Width="*" />
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
@@ -61,7 +62,7 @@
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
-            <Border Background="#101828">
+            <Border Background="{StaticResource SecondarySurfaceBrush}">
                 <Border Padding="16">
                     <DockPanel>
                         <StackPanel DockPanel.Dock="Left">
@@ -87,7 +88,7 @@
             </Border>
         </Grid>
 
-        <StatusBar Grid.Row="1" Grid.Column="1" Background="#0B1220" Foreground="White">
+        <StatusBar Grid.Row="1" Grid.Column="1" Background="{StaticResource SurfaceBrush}" Foreground="White">
             <StatusBarItem Content="Поддержка: Windows 10/11 · x64 / ARM64" />
             <StatusBarItem HorizontalAlignment="Right" Content="MIT License" />
         </StatusBar>

@@ -29,23 +29,25 @@
                   IsReadOnly="True"
                   HeadersVisibility="Column"
                   CanUserAddRows="False"
+                  ColumnWidth="*"
                   Background="{DynamicResource ControlBackgroundBrush}"
                   BorderBrush="{StaticResource CardBorderBrush}"
                   RowBackground="{x:Null}"
-                  AlternatingRowBackground="#111827">
+                  AlternatingRowBackground="{StaticResource SurfaceBrush}">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Процесс" Binding="{Binding Name}" Width="*" />
-                <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="100" />
-                <DataGridTextColumn Header="Working Set" Binding="{Binding WorkingSetMb, StringFormat={}{0:F0} MB}" Width="140" />
-                <DataGridTextColumn Header="Virtual Memory" Binding="{Binding VirtualMemoryMb, StringFormat={}{0:F0} MB}" Width="160" />
-                <DataGridTextColumn Header="Handles" Binding="{Binding Handles}" Width="100" />
-                <DataGridTextColumn Header="CPU" Binding="{Binding CpuUsagePercent, StringFormat={}{0:F1}%}" Width="80" />
-                <DataGridTextColumn Header="Managed Heap" Binding="{Binding ManagedHeapMb, StringFormat={}{0:F0} MB}" Width="140" />
-                <DataGridTextColumn Header="Baseline" Binding="{Binding BaselineMb, StringFormat={}{0:F0} MB}" Width="120" />
-                <DataGridTextColumn Header="Рост" Binding="{Binding GrowthPercentage, StringFormat={}{0:F1}%}" Width="90" />
+                <!-- Процесс занимает больше места, остальные колонки распределяют оставшееся пространство -->
+                <DataGridTextColumn Header="Процесс" Binding="{Binding Name}" Width="3*" />
+                <DataGridTextColumn Header="PID" Binding="{Binding ProcessId}" Width="*" />
+                <DataGridTextColumn Header="Working Set" Binding="{Binding WorkingSetMb, StringFormat={}{0:F0} MB}" Width="*" />
+                <DataGridTextColumn Header="Virtual Memory" Binding="{Binding VirtualMemoryMb, StringFormat={}{0:F0} MB}" Width="*" />
+                <DataGridTextColumn Header="Handles" Binding="{Binding Handles}" Width="*" />
+                <DataGridTextColumn Header="CPU" Binding="{Binding CpuUsagePercent, StringFormat={}{0:F1}%}" Width="*" />
+                <DataGridTextColumn Header="Managed Heap" Binding="{Binding ManagedHeapMb, StringFormat={}{0:F0} MB}" Width="*" />
+                <DataGridTextColumn Header="Baseline" Binding="{Binding BaselineMb, StringFormat={}{0:F0} MB}" Width="*" />
+                <DataGridTextColumn Header="Рост" Binding="{Binding GrowthPercentage, StringFormat={}{0:F1}%}" Width="*" />
                 <DataGridCheckBoxColumn Header="Leak?"
                                         Binding="{Binding IsLeakSuspected}"
-                                        Width="90" />
+                                        Width="*" />
             </DataGrid.Columns>
         </DataGrid>
     </Grid>
