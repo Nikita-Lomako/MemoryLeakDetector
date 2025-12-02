@@ -39,7 +39,10 @@ public sealed class MonitoringResultMapper : IMonitoringResultMapper
                 BaselineUpdatedAtUtc = insight.Baseline.LastUpdatedUtc,
                 BaselineWorkingSetMb = insight.Baseline.AverageWorkingSetMb,
                 BaselineVirtualMemoryMb = insight.Baseline.AverageVirtualMemoryMb,
-                BaselineHandleCount = insight.Baseline.AverageHandleCount
+                BaselineHandleCount = insight.Baseline.AverageHandleCount,
+                StackTrace = insight.StackTrace,
+                DetectionStrategy = insight.DetectionStrategy,
+                AnomalyScore = insight.AnomalyScore
             })
             .ToList();
 

@@ -2,6 +2,7 @@ using MemoryLeakDetector.Core.Abstractions;
 using MemoryLeakDetector.Core.Options;
 using MemoryLeakDetector.Core.Services.Baselines;
 using MemoryLeakDetector.Core.Services.Detection;
+using MemoryLeakDetector.Core.Services.Diagnostics;
 using MemoryLeakDetector.Core.Services.Metrics;
 using MemoryLeakDetector.Core.Services.Monitoring;
 using MemoryLeakDetector.Core.Services.Streaming;
@@ -28,6 +29,7 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IGcMetricsProvider, DotNetGcMetricsProvider>();
         services.TryAddSingleton<IProcessMetricsCollector, ProcessMetricsCollector>();
         services.TryAddSingleton<ILeakDetectionStrategy, ThresholdLeakDetectionStrategy>();
+        services.TryAddSingleton<IStackTraceProvider, DotNetDiagnosticsStackTraceProvider>();
         services.TryAddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();
         services.TryAddSingleton<IMonitoringResultStream, InMemoryMonitoringResultStream>();
         services.TryAddSingleton<IMonitoringResultMapper, MonitoringResultMapper>();

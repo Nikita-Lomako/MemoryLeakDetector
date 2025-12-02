@@ -14,6 +14,8 @@ public sealed class ThresholdLeakDetectionStrategy : ILeakDetectionStrategy
         _options = options.Value;
     }
 
+    public string Name => "threshold";
+
     public LeakDetectionInsight Analyze(ProcessMetricSnapshot snapshot, ProcessBaseline baseline)
     {
         if (baseline.SampleCount < _options.MinSamplesForLeakDetection)
@@ -47,7 +49,19 @@ public sealed class ThresholdLeakDetectionStrategy : ILeakDetectionStrategy
         var isLeak = reasons.Count > 0;
         var reasonText = isLeak ? string.Join("; ", reasons) : "Отклонения в пределах baseline";
 
-        return CreateInsight(snapshot, baseline, isLeak, reasonText, workingSetGrowthPercent, workingSetDelta, virtualGrowthPercent, handleGrowthPercent);
+        var insight = CreateInsight(
+            snapshot,
+            baseline,
+            isLeak,
+            reasonText,
+            workingSetGrowthPercent,
+            workingSetDelta,
+            virtualGrowthPercent,
+            handleGrowthPercent);
+
+        insight.DetectionStrategy = Name;
+
+        return insight;
     }
 
     private static double PercentGrowth(double baselineValue, double currentValue)
