@@ -1,10 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36414.22 d17.14
+VisualStudioVersion = 17.14.36414.22
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemoryLeakDetector.Service", "MemoryLeakDetector.Service\MemoryLeakDetector.Service.csproj", "{9E9E1999-47A4-41CF-BAF0-2BA3D1759FEE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemoryLeakDetector.UI", "MemoryLeakDetector.UI\MemoryLeakDetector.UI.csproj", "{54675546-53FA-4A3A-B508-4437C07E053A}"
@@ -12,10 +10,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemoryLeakDetector.Core", "MemoryLeakDetector.Core\MemoryLeakDetector.Core.csproj", "{EE77A1C7-7BEB-4C96-9E64-ADBAD12C6B7E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MemoryLeakDetector.API", "MemoryLeakDetector.API\MemoryLeakDetector.API.csproj", "{243FE8E1-CA9D-41D0-9531-62B3E50C9F53}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{8A00E1C5-40FF-454C-9EE0-E20334B3989E}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0CF6D7B4-B550-4181-94FD-BBBE90DDCB71}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,12 +36,6 @@ Global
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{9E9E1999-47A4-41CF-BAF0-2BA3D1759FEE} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{54675546-53FA-4A3A-B508-4437C07E053A} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{EE77A1C7-7BEB-4C96-9E64-ADBAD12C6B7E} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{243FE8E1-CA9D-41D0-9531-62B3E50C9F53} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C5E0EA8A-2BEB-4D36-99BF-DE796EF0E10D}
