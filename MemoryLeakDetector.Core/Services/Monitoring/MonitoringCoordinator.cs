@@ -10,17 +10,20 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
     private readonly IProcessMetricsCollector _collector;
     private readonly IBaselineRepository _baselineRepository;
     private readonly ILeakDetectionStrategy _leakDetectionStrategy;
+    private readonly IStackTraceProvider _stackTraceProvider;
     private readonly ILogger<MonitoringCoordinator> _logger;
 
     public MonitoringCoordinator(
         IProcessMetricsCollector collector,
         IBaselineRepository baselineRepository,
         ILeakDetectionStrategy leakDetectionStrategy,
+        IStackTraceProvider stackTraceProvider,
         ILogger<MonitoringCoordinator> logger)
     {
         _collector = collector;
         _baselineRepository = baselineRepository;
         _leakDetectionStrategy = leakDetectionStrategy;
+        _stackTraceProvider = stackTraceProvider;
         _logger = logger;
     }
 
@@ -37,6 +40,18 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
             {
                 var baseline = _baselineRepository.Update(snapshot);
                 var insight = _leakDetectionStrategy.Analyze(snapshot, baseline);
+
+                if (insight.IsLeakSuspected)
+                {
+                    try
+                    {
+                        insight.StackTrace = _stackTraceProvider.TryCaptureStackTrace(snapshot.ProcessId, snapshot.ProcessName);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogDebug(ex, "Failed to capture stack trace for {ProcessName} ({ProcessId})", snapshot.ProcessName, snapshot.ProcessId);
+                    }
+                }
                 insights.Add(insight);
 
                 if (insight.IsLeakSuspected)

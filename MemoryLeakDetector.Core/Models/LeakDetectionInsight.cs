@@ -36,5 +36,20 @@ public sealed class LeakDetectionInsight
     public string Reason { get; }
     public ProcessBaseline Baseline { get; }
     public ProcessMetricSnapshot Snapshot { get; }
+
+    /// <summary>
+    /// Текстовый стектрейс, зафиксированный при подозрении на утечку (может быть null).
+    /// </summary>
+    public string? StackTrace { get; set; }
+
+    /// <summary>
+    /// Имя стратегии обнаружения (например, "threshold", "ml-anomaly").
+    /// </summary>
+    public string DetectionStrategy { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Дополнительный числовой "скор" аномалии (для будущих ML-стратегий).
+    /// </summary>
+    public double? AnomalyScore { get; set; }
 }
 

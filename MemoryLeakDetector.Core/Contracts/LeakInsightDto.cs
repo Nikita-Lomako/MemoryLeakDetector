@@ -14,5 +14,20 @@ public sealed class LeakInsightDto
     public double BaselineWorkingSetMb { get; init; }
     public double BaselineVirtualMemoryMb { get; init; }
     public double BaselineHandleCount { get; init; }
+
+    /// <summary>
+    /// Текстовый стектрейс, зафиксированный при подозрении на утечку (может быть null).
+    /// </summary>
+    public string? StackTrace { get; init; }
+
+    /// <summary>
+    /// Имя стратегии обнаружения (например, "threshold", "ml-anomaly").
+    /// </summary>
+    public string DetectionStrategy { get; init; } = string.Empty;
+
+    /// <summary>
+    /// Дополнительный числовой "скор" аномалии (для будущих ML-стратегий).
+    /// </summary>
+    public double? AnomalyScore { get; init; }
 }
 
