@@ -3,6 +3,7 @@ using System;
 using MemoryLeakDetector.Core.Options;
 using MemoryLeakDetector.Service;
 using MemoryLeakDetector.Service.Services;
+using System.Runtime.Versioning;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -17,3 +18,6 @@ if (OperatingSystem.IsWindows())
 
 var host = builder.Build();
 host.Run();
+
+[SupportedOSPlatform("windows")]
+public partial class Program { }

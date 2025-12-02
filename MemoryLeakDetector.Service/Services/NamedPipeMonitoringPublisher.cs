@@ -1,9 +1,15 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
 using System.IO.Pipes;
 using System.Runtime.Versioning;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 using MemoryLeakDetector.Core.Abstractions;
 using MemoryLeakDetector.Core.Contracts;
 using MemoryLeakDetector.Core.Options;
@@ -20,7 +26,9 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
     private readonly MonitoringPipeOptions _options;
     private readonly ILogger<NamedPipeMonitoringPublisher> _logger;
     private readonly JsonSerializerOptions _serializerOptions;
-    private readonly ConcurrentDictionary<int, NamedPipeServerStream> _clients = new();
+    private readonly ConcurrentDictionary<int, PipeClientConnection> _clients = new();
+    private readonly SemaphoreSlim _broadcastLock = new(1, 1);
+    private readonly Encoding _utf8NoBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
     private int _clientId;
 
     public NamedPipeMonitoringPublisher(
@@ -40,99 +48,189 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var acceptTask = Task.Run(() => AcceptLoopAsync(stoppingToken), stoppingToken);
+        var acceptTask = AcceptLoopAsync(stoppingToken);
 
-        await foreach (var result in _resultStream.ReadAllAsync(stoppingToken))
+        try
         {
-            var payload = JsonSerializer.Serialize(result, _serializerOptions);
-            await BroadcastAsync(payload, stoppingToken);
+            await foreach (var result in _resultStream.ReadAllAsync(stoppingToken).ConfigureAwait(false))
+            {
+                await BroadcastAsync(result, stoppingToken).ConfigureAwait(false);
+            }
         }
-
-        await acceptTask;
+        finally
+        {
+            await acceptTask.ConfigureAwait(false);
+        }
     }
 
     private async Task AcceptLoopAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
         {
-            var server = new NamedPipeServerStream(
-                _options.PipeName,
-                PipeDirection.Out,
-                _options.MaxServerConnections,
-                PipeTransmissionMode.Byte,
-                PipeOptions.Asynchronous);
+            NamedPipeServerStream? server = null;
 
             try
             {
+                server = CreatePipeServer();
                 await server.WaitForConnectionAsync(token).ConfigureAwait(false);
+
                 var id = Interlocked.Increment(ref _clientId);
-                _clients[id] = server;
+                var connection = new PipeClientConnection(id, server, _utf8NoBom);
+                if (!_clients.TryAdd(id, connection))
+                {
+                    connection.Dispose();
+                    continue;
+                }
+
                 _logger.LogInformation("Monitoring client #{ClientId} connected", id);
+                server = null; // ownership transferred to the connection
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
-                server.Dispose();
+                server?.Dispose();
                 break;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Pipe accept loop error");
-                server.Dispose();
-                await Task.Delay(TimeSpan.FromSeconds(2), token);
+                server?.Dispose();
+                await DelayAsync(token).ConfigureAwait(false);
             }
         }
     }
 
-    private async Task BroadcastAsync(string payload, CancellationToken token)
+    private async Task BroadcastAsync(MonitoringResultDto result, CancellationToken token)
     {
-        var messageBytes = Encoding.UTF8.GetBytes(payload + Environment.NewLine);
-        var disconnected = new List<int>();
+        var payload = JsonSerializer.Serialize(result, _serializerOptions);
 
-        foreach (var kvp in _clients)
+        await _broadcastLock.WaitAsync(token).ConfigureAwait(false);
+        try
         {
-            var clientId = kvp.Key;
-            var stream = kvp.Value;
-            if (!stream.IsConnected)
+            var disconnected = new List<int>();
+
+            foreach (var (clientId, connection) in _clients)
             {
-                disconnected.Add(clientId);
-                continue;
+                if (!connection.Stream.IsConnected)
+                {
+                    disconnected.Add(clientId);
+                    connection.Dispose();
+                    continue;
+                }
+
+                try
+                {
+                    await connection.Writer.WriteLineAsync(payload).ConfigureAwait(false);
+                }
+                catch (IOException ex)
+                {
+                    _logger.LogWarning(ex, "Failed to broadcast to client #{ClientId}", clientId);
+                    disconnected.Add(clientId);
+                    connection.Dispose();
+                }
+                catch (ObjectDisposedException)
+                {
+                    disconnected.Add(clientId);
+                }
             }
 
-            try
+            foreach (var id in disconnected)
             {
-                await stream.WriteAsync(messageBytes, token).ConfigureAwait(false);
-                await stream.FlushAsync(token).ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to broadcast to client #{ClientId}", clientId);
-                disconnected.Add(clientId);
-                stream.Dispose();
+                _clients.TryRemove(id, out _);
             }
         }
-
-        foreach (var id in disconnected)
+        finally
         {
-            _clients.TryRemove(id, out _);
+            _broadcastLock.Release();
         }
+    }
+
+   private NamedPipeServerStream CreatePipeServer()
+    {
+    PipeSecurity? pipeSecurity = null;
+    try
+    {
+        pipeSecurity = new PipeSecurity();
+        var users = new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null);
+        pipeSecurity.AddAccessRule(new PipeAccessRule(
+            users,
+            PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance,
+            AccessControlType.Allow));
+    }
+    catch (Exception ex)
+    {
+        _logger.LogWarning(ex, "Failed to configure pipe security, falling back to defaults");
+    }
+
+    // Ваша версия .NET не поддерживает конструктор с PipeSecurity,
+    // поэтому используем доступный конструктор без последнего параметра
+    return new NamedPipeServerStream(
+        _options.PipeName,
+        PipeDirection.Out,
+        _options.MaxServerConnections,
+        PipeTransmissionMode.Byte,
+        PipeOptions.Asynchronous,
+        0, // inBufferSize
+        0  // outBufferSize
+    );
+    }
+
+    private Task DelayAsync(CancellationToken token)
+    {
+        if (_options.ReconnectDelayMilliseconds <= 0)
+        {
+            return Task.CompletedTask;
+        }
+
+        return Task.Delay(TimeSpan.FromMilliseconds(_options.ReconnectDelayMilliseconds), token);
     }
 
     public override Task StopAsync(CancellationToken cancellationToken)
     {
-        foreach (var stream in _clients.Values)
+        foreach (var connection in _clients.Values)
+        {
+            connection.Dispose();
+        }
+
+        _clients.Clear();
+
+        return base.StopAsync(cancellationToken);
+    }
+
+    private sealed class PipeClientConnection : IDisposable
+    {
+        public PipeClientConnection(int id, NamedPipeServerStream stream, Encoding encoding)
+        {
+            Id = id;
+            Stream = stream;
+            Writer = new StreamWriter(stream, encoding, bufferSize: 1024, leaveOpen: false)
+            {
+                AutoFlush = true
+            };
+        }
+
+        public int Id { get; }
+        public NamedPipeServerStream Stream { get; }
+        public StreamWriter Writer { get; }
+
+        public void Dispose()
         {
             try
             {
-                stream.Dispose();
+                Writer.Dispose();
+            }
+            catch
+            {
+                // ignored
+            }
+
+            try
+            {
+                Stream.Dispose();
             }
             catch
             {
                 // ignored
             }
         }
-
-        _clients.Clear();
-        return base.StopAsync(cancellationToken);
     }
 }
-
