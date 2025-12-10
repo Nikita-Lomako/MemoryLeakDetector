@@ -32,7 +32,18 @@ namespace MemoryLeakDetector.UI.Services.Monitoring
             {
                 _dataProvider.Update(result);
                 _historyProvider.Add(result);
-                _logger.LogDebug("Monitoring result received with {ProcessCount} processes", result.Processes.Count);
+                
+                var leakCount = result.Insights.Count(i => i.IsLeakSuspected);
+                if (leakCount > 0)
+                {
+                    _logger.LogInformation(
+                        "Monitoring result received: {ProcessCount} processes, {LeakCount} leaks detected at {Time}",
+                        result.Processes.Count, leakCount, result.StartedUtc);
+                }
+                else
+                {
+                    _logger.LogDebug("Monitoring result received with {ProcessCount} processes", result.Processes.Count);
+                }
             }
         }
     }

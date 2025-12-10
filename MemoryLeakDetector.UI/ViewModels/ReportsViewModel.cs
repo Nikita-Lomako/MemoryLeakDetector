@@ -57,19 +57,27 @@ public sealed partial class ReportsViewModel : ObservableObject
 
     private void UpdateStatus()
     {
+        var totalCount = _historyProvider.GetTotalCount();
         var range = _historyProvider.GetRange(
             FromDate.HasValue ? FromDate.Value.ToUniversalTime() : null,
             ToDate.HasValue ? ToDate.Value.ToUniversalTime() : null);
         
         TotalResultsCount = range.Count;
         
-        if (range.Count == 0)
+        if (totalCount == 0)
         {
-            StatusMessage = "Данные за выбранный период отсутствуют";
+            StatusMessage = "История пуста. Убедитесь, что Service запущен и UI подключен.";
+        }
+        else if (range.Count == 0)
+        {
+            StatusMessage = $"Данные за выбранный период отсутствуют (всего в истории: {totalCount})";
         }
         else
         {
-            StatusMessage = $"Доступно {range.Count} записей мониторинга";
+            var leaksCount = range
+                .SelectMany(r => r.Insights)
+                .Count(i => i.IsLeakSuspected);
+            StatusMessage = $"Доступно {range.Count} записей за период (всего: {totalCount}, утечек: {leaksCount})";
         }
     }
 

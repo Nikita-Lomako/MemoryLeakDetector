@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.Versioning;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 
 namespace MemoryLeakDetector.Core.Extensions;
 
@@ -39,7 +40,17 @@ public static class ServiceCollectionExtensions
         });
         
         services.TryAddSingleton<ILeakDetectionStrategy, ThresholdLeakDetectionStrategy>();
-        services.TryAddSingleton<IStackTraceProvider, DotNetDiagnosticsStackTraceProvider>();
+        
+        // Регистрация stack trace provider с rate limiting для отказоустойчивости
+        services.TryAddSingleton<DotNetDiagnosticsStackTraceProvider>();
+        services.TryAddSingleton<IStackTraceProvider>(provider =>
+        {
+            var innerProvider = provider.GetRequiredService<DotNetDiagnosticsStackTraceProvider>();
+            var options = provider.GetRequiredService<IOptions<MonitoringOptions>>();
+            var logger = provider.GetRequiredService<ILogger<RateLimitedStackTraceProvider>>();
+            return new RateLimitedStackTraceProvider(innerProvider, options, logger);
+        });
+        
         services.TryAddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();
         services.TryAddSingleton<IMonitoringResultStream, InMemoryMonitoringResultStream>();
         services.TryAddSingleton<IMonitoringResultMapper, MonitoringResultMapper>();

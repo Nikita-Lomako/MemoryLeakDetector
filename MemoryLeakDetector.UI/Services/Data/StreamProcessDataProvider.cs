@@ -68,6 +68,14 @@ namespace MemoryLeakDetector.UI.Services.Data
                 }
 
                 _current = snapshots;
+                
+                // Очистка истории для неактивных процессов для предотвращения утечки handles
+                var activeProcessIds = new HashSet<int>(snapshots.Select(s => s.ProcessId));
+                var inactiveKeys = _trendHistory.Keys.Where(key => !activeProcessIds.Contains(key)).ToList();
+                foreach (var key in inactiveKeys)
+                {
+                    _trendHistory.Remove(key);
+                }
             }
 
             ProcessesUpdated?.Invoke(this, EventArgs.Empty);

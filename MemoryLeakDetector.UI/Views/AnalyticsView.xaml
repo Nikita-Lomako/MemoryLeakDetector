@@ -54,13 +54,20 @@
                     Background="{DynamicResource ControlBackgroundBrush}"
                     CornerRadius="8"
                     Margin="0,0,16,0">
-                <StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
                     <TextBlock Text="Подозрительные процессы / возможные утечки"
                                FontSize="18"
                                FontWeight="SemiBold"
-                               Margin="0,0,0,8" />
+                               Margin="0,0,0,8"
+                               Grid.Row="0" />
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Auto"
+                                  Grid.Row="1">
                         <ItemsControl ItemsSource="{Binding LeakProcesses}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
@@ -81,7 +88,7 @@
                                                            Foreground="{Binding IsLeakSuspected, Converter={StaticResource BooleanToBrushConverter}}" />
                                             </StackPanel>
                                             <TextBlock Text="{Binding LeakReason}"
-                                                       TextTrimming="CharacterEllipsis"
+                                                       TextWrapping="Wrap"
                                                        Opacity="0.8" />
                                             <TextBlock Text="{Binding StackTrace}"
                                                        Margin="0,4,0,0"
@@ -95,7 +102,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
                     </ScrollViewer>
-                </StackPanel>
+                </Grid>
             </Border>
 
             <Border Grid.Column="1"
@@ -108,15 +115,17 @@
                                FontWeight="SemiBold"
                                Margin="0,0,0,8" />
 
-                    <ItemsControl ItemsSource="{Binding Recommendations}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}"
-                                           TextWrapping="Wrap"
-                                           Margin="0,0,0,8" />
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl ItemsSource="{Binding Recommendations}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,0,0,8" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
                 </StackPanel>
             </Border>
         </Grid>

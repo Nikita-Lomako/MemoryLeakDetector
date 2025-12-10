@@ -80,6 +80,15 @@ public sealed class MonitoringReportGenerator : IReportGenerator
         var summaryTotalProcesses = summaryLast?.Processes.Count ?? 0;
         var summaryTotalLeaks = summaryLast?.Insights.Count(i => i.IsLeakSuspected) ?? 0;
         var summaryTotalErrors = model.Results.Sum(r => r.ErrorCount);
+        
+        // Подсчет уникальных утечек за весь период (по ProcessId)
+        // Берем последнюю (самую свежую) утечку для каждого процесса
+        var allLeaks = model.Results
+            .SelectMany(r => r.Insights.Where(i => i.IsLeakSuspected).Select(i => new { Insight = i, CycleTime = r.StartedUtc }))
+            .GroupBy(x => x.Insight.ProcessId)
+            .Select(g => g.OrderByDescending(x => x.CycleTime).First().Insight)
+            .ToList();
+        var uniqueLeaksCount = allLeaks.Count;
 
         html.AppendLine("    <div class=\"card\">");
         html.AppendLine("        <div class=\"grid\">");
@@ -96,6 +105,10 @@ public sealed class MonitoringReportGenerator : IReportGenerator
         html.AppendLine($"                <div class=\"value\">{summaryTotalLeaks}</div>");
         html.AppendLine("            </div>");
         html.AppendLine("            <div>");
+        html.AppendLine("                <div class=\"label\">Уникальных утечек (за весь период)</div>");
+        html.AppendLine($"                <div class=\"value\">{uniqueLeaksCount}</div>");
+        html.AppendLine("            </div>");
+        html.AppendLine("            <div>");
         html.AppendLine("                <div class=\"label\">Ошибки (суммарно)</div>");
         html.AppendLine($"                <div class=\"value\">{summaryTotalErrors}</div>");
         html.AppendLine("            </div>");
@@ -105,54 +118,119 @@ public sealed class MonitoringReportGenerator : IReportGenerator
         if (model.Results.Any())
         {
             var latest = model.Results.Last();
-            html.AppendLine("    <div class=\"card\">");
-            html.AppendLine($"        <h2>Последний цикл мониторинга ({latest.StartedUtc.ToLocalTime():g})</h2>");
-            html.AppendLine($"        <div class=\"muted\">Длительность: {latest.Duration}</div>");
-            html.AppendLine("        <table>");
-            html.AppendLine("            <thead>");
-            html.AppendLine("                <tr>");
-            html.AppendLine("                    <th>Процесс</th>");
-            html.AppendLine("                    <th>PID</th>");
-            html.AppendLine("                    <th>Working Set (MB)</th>");
-            html.AppendLine("                    <th>Virtual (MB)</th>");
-            html.AppendLine("                    <th>Handles</th>");
-            html.AppendLine("                    <th>CPU %</th>");
-            html.AppendLine("                    <th>Leak?</th>");
-            html.AppendLine("                    <th>Причина</th>");
-            html.AppendLine("                </tr>");
-            html.AppendLine("            </thead>");
-            html.AppendLine("            <tbody>");
+            var processesWithLeaks = latest.Insights
+                .Where(i => i.IsLeakSuspected)
+                .ToList();
 
-            var insightsByPid = latest.Insights.ToDictionary(i => i.ProcessId, i => i);
-            foreach (var p in latest.Processes.OrderByDescending(p => p.WorkingSetMb).Take(50))
+            if (processesWithLeaks.Any())
             {
-                insightsByPid.TryGetValue(p.ProcessId, out var insight);
-                var isLeak = insight?.IsLeakSuspected == true;
-
+                html.AppendLine("    <div class=\"card\">");
+                html.AppendLine($"        <h2>Процессы с обнаруженными утечками (последний цикл: {latest.StartedUtc.ToLocalTime():g})</h2>");
+                html.AppendLine($"        <div class=\"muted\">Длительность цикла: {latest.Duration}</div>");
+                html.AppendLine("        <table>");
+                html.AppendLine("            <thead>");
                 html.AppendLine("                <tr>");
-                html.AppendLine($"                    <td>{EscapeHtml(p.ProcessName)}</td>");
-                html.AppendLine($"                    <td>{p.ProcessId}</td>");
-                html.AppendLine($"                    <td>{p.WorkingSetMb:F0}</td>");
-                html.AppendLine($"                    <td>{p.VirtualMemoryMb:F0}</td>");
-                html.AppendLine($"                    <td>{p.HandleCount}</td>");
-                html.AppendLine($"                    <td>{(p.CpuUsagePercent?.ToString("F1") ?? "-")}</td>");
-                html.AppendLine("                    <td>");
-                if (isLeak)
-                {
-                    html.AppendLine("                        <span class=\"chip chip-leak\">Leak</span>");
-                }
-                else
-                {
-                    html.AppendLine("                        <span class=\"chip chip-ok\">OK</span>");
-                }
-                html.AppendLine("                    </td>");
-                html.AppendLine($"                    <td class=\"muted\">{EscapeHtml(insight?.Reason ?? "")}</td>");
+                html.AppendLine("                    <th>Процесс</th>");
+                html.AppendLine("                    <th>PID</th>");
+                html.AppendLine("                    <th>Working Set (MB)</th>");
+                html.AppendLine("                    <th>Virtual (MB)</th>");
+                html.AppendLine("                    <th>Handles</th>");
+                html.AppendLine("                    <th>CPU %</th>");
+                html.AppendLine("                    <th>Причина утечки</th>");
                 html.AppendLine("                </tr>");
-            }
+                html.AppendLine("            </thead>");
+                html.AppendLine("            <tbody>");
 
-            html.AppendLine("            </tbody>");
-            html.AppendLine("        </table>");
-            html.AppendLine("    </div>");
+                var processesDict = latest.Processes.ToDictionary(p => p.ProcessId);
+                foreach (var insight in processesWithLeaks.OrderByDescending(i => i.WorkingSetDeltaMb))
+                {
+                    if (processesDict.TryGetValue(insight.ProcessId, out var process))
+                    {
+                        html.AppendLine("                <tr>");
+                        html.AppendLine($"                    <td>{EscapeHtml(insight.ProcessName)}</td>");
+                        html.AppendLine($"                    <td>{insight.ProcessId}</td>");
+                        html.AppendLine($"                    <td>{process.WorkingSetMb:F0}</td>");
+                        html.AppendLine($"                    <td>{process.VirtualMemoryMb:F0}</td>");
+                        html.AppendLine($"                    <td>{process.HandleCount}</td>");
+                        html.AppendLine($"                    <td>{(process.CpuUsagePercent?.ToString("F1") ?? "-")}</td>");
+                        html.AppendLine($"                    <td class=\"muted\">{EscapeHtml(insight.Reason)}</td>");
+                        html.AppendLine("                </tr>");
+                        
+                        // Добавляем информацию о dump-файле, если он был создан
+                        if (!string.IsNullOrWhiteSpace(insight.StackTrace))
+                        {
+                            html.AppendLine("                <tr class=\"dump-info\">");
+                            html.AppendLine("                    <td colspan=\"7\" style=\"padding-left: 40px; padding-top: 8px; padding-bottom: 8px; background-color: #f5f5f5; font-size: 11px;\">");
+                            html.AppendLine("                        <strong>📁 Dump-файл создан:</strong><br />");
+                            html.AppendLine($"                        <pre style=\"margin: 4px 0; white-space: pre-wrap; font-family: Consolas, monospace;\">{EscapeHtml(insight.StackTrace)}</pre>");
+                            html.AppendLine("                    </td>");
+                            html.AppendLine("                </tr>");
+                        }
+                    }
+                }
+
+                html.AppendLine("            </tbody>");
+                html.AppendLine("        </table>");
+                html.AppendLine("    </div>");
+            }
+            else
+            {
+                html.AppendLine("    <div class=\"card\">");
+                html.AppendLine($"        <h2>Последний цикл мониторинга ({latest.StartedUtc.ToLocalTime():g})</h2>");
+                html.AppendLine($"        <div class=\"muted\">Длительность: {latest.Duration}</div>");
+                html.AppendLine("        <p class=\"muted\">Утечки не обнаружены в последнем цикле.</p>");
+                html.AppendLine("    </div>");
+            }
+            
+            // Секция с историей утечек за весь период
+            if (allLeaks.Any())
+            {
+                html.AppendLine("    <div class=\"card\">");
+                html.AppendLine($"        <h2>История обнаруженных утечек (всего: {uniqueLeaksCount})</h2>");
+                html.AppendLine("        <table>");
+                html.AppendLine("            <thead>");
+                html.AppendLine("                <tr>");
+                html.AppendLine("                    <th>Процесс</th>");
+                html.AppendLine("                    <th>PID</th>");
+                html.AppendLine("                    <th>Причина</th>");
+                html.AppendLine("                    <th>Рост Working Set</th>");
+                html.AppendLine("                    <th>Рост Virtual Memory</th>");
+                html.AppendLine("                    <th>Рост Handles</th>");
+                html.AppendLine("                </tr>");
+                html.AppendLine("            </thead>");
+                html.AppendLine("            <tbody>");
+                
+                foreach (var leak in allLeaks.OrderByDescending(l => l.WorkingSetGrowthPercent))
+                {
+                    // Вычисляем дельты на основе baseline и процентов роста
+                    var virtualDeltaMb = leak.BaselineVirtualMemoryMb * leak.VirtualMemoryGrowthPercent / 100.0;
+                    var handleDelta = (int)(leak.BaselineHandleCount * leak.HandleGrowthPercent / 100.0);
+                    
+                    html.AppendLine("                <tr>");
+                    html.AppendLine($"                    <td>{EscapeHtml(leak.ProcessName ?? "Unknown")}</td>");
+                    html.AppendLine($"                    <td>{leak.ProcessId}</td>");
+                    html.AppendLine($"                    <td class=\"muted\">{EscapeHtml(leak.Reason ?? "")}</td>");
+                    html.AppendLine($"                    <td>+{leak.WorkingSetDeltaMb:F1} MB ({leak.WorkingSetGrowthPercent:F1}%)</td>");
+                    html.AppendLine($"                    <td>+{virtualDeltaMb:F1} MB ({leak.VirtualMemoryGrowthPercent:F1}%)</td>");
+                    html.AppendLine($"                    <td>+{handleDelta} ({leak.HandleGrowthPercent:F1}%)</td>");
+                    html.AppendLine("                </tr>");
+                    
+                    // Добавляем информацию о dump-файле, если он был создан
+                    if (!string.IsNullOrWhiteSpace(leak.StackTrace))
+                    {
+                        html.AppendLine("                <tr class=\"dump-info\">");
+                        html.AppendLine("                    <td colspan=\"6\" style=\"padding-left: 40px; padding-top: 8px; padding-bottom: 8px; background-color: #f5f5f5; font-size: 11px;\">");
+                        html.AppendLine("                        <strong>📁 Dump-файл создан:</strong><br />");
+                        html.AppendLine($"                        <pre style=\"margin: 4px 0; white-space: pre-wrap; font-family: Consolas, monospace;\">{EscapeHtml(leak.StackTrace)}</pre>");
+                        html.AppendLine("                    </td>");
+                        html.AppendLine("                </tr>");
+                    }
+                }
+                
+                html.AppendLine("            </tbody>");
+                html.AppendLine("        </table>");
+                html.AppendLine("    </div>");
+            }
         }
         else
         {
@@ -245,60 +323,93 @@ public sealed class MonitoringReportGenerator : IReportGenerator
                         var totalProcesses = last?.Processes.Count ?? 0;
                         var totalLeaks = last?.Insights.Count(i => i.IsLeakSuspected) ?? 0;
                         var totalErrors = _model.Results.Sum(r => r.ErrorCount);
+                        
+                        // Подсчет уникальных утечек за весь период
+                        var uniqueLeaks = _model.Results
+                            .SelectMany(r => r.Insights.Where(i => i.IsLeakSuspected))
+                            .GroupBy(i => i.ProcessId)
+                            .Count();
 
                         SummaryCard(row, "Всего циклов", totalCycles.ToString());
                         SummaryCard(row, "Процессов (последний цикл)", totalProcesses.ToString());
-                        SummaryCard(row, "Подозрений на утечки (последний цикл)", totalLeaks.ToString());
+                        SummaryCard(row, "Подозрений (последний цикл)", totalLeaks.ToString());
+                        SummaryCard(row, "Уникальных утечек", uniqueLeaks.ToString());
                         SummaryCard(row, "Ошибки (суммарно)", totalErrors.ToString());
                     });
 
                     var latest = _model.Results.LastOrDefault();
                     if (latest is not null)
                     {
-                        col.Item().Text($"Последний цикл мониторинга: {latest.StartedUtc.ToLocalTime():g}")
-                            .FontSize(13).SemiBold();
-                        col.Item().Text($"Длительность: {latest.Duration}");
+                        var processesWithLeaks = latest.Insights
+                            .Where(i => i.IsLeakSuspected)
+                            .ToList();
 
-                        col.Item().Table(table =>
+                        if (processesWithLeaks.Any())
                         {
-                            table.ColumnsDefinition(cols =>
+                            col.Item().Text($"Процессы с обнаруженными утечками (последний цикл: {latest.StartedUtc.ToLocalTime():g})")
+                                .FontSize(13).SemiBold();
+                            col.Item().Text($"Длительность цикла: {latest.Duration}");
+
+                            col.Item().Table(table =>
                             {
-                                cols.RelativeColumn(3);
-                                cols.RelativeColumn(1);
-                                cols.RelativeColumn(1);
-                                cols.RelativeColumn(1);
-                                cols.RelativeColumn(1);
-                                cols.RelativeColumn(1);
-                                cols.RelativeColumn(1);
+                                table.ColumnsDefinition(cols =>
+                                {
+                                    cols.RelativeColumn(3);
+                                    cols.RelativeColumn(1);
+                                    cols.RelativeColumn(1);
+                                    cols.RelativeColumn(1);
+                                    cols.RelativeColumn(1);
+                                    cols.RelativeColumn(1);
+                                    cols.RelativeColumn(2);
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().Element(c => HeaderCell(c)).Text("Процесс");
+                                    header.Cell().Element(c => HeaderCell(c)).Text("PID");
+                                    header.Cell().Element(c => HeaderCell(c)).Text("Working Set (MB)");
+                                    header.Cell().Element(c => HeaderCell(c)).Text("Virtual (MB)");
+                                    header.Cell().Element(c => HeaderCell(c)).Text("Handles");
+                                    header.Cell().Element(c => HeaderCell(c)).Text("CPU %");
+                                    header.Cell().Element(c => HeaderCell(c)).Text("Причина утечки");
+                                });
+
+                                var processesDict = latest.Processes.ToDictionary(p => p.ProcessId);
+                                foreach (var insight in processesWithLeaks.OrderByDescending(i => i.WorkingSetDeltaMb))
+                                {
+                                    if (processesDict.TryGetValue(insight.ProcessId, out var process))
+                                    {
+                                        table.Cell().Element(c => Cell(c)).Text(insight.ProcessName);
+                                        table.Cell().Element(c => Cell(c)).Text(insight.ProcessId.ToString());
+                                        table.Cell().Element(c => Cell(c)).Text($"{process.WorkingSetMb:F0}");
+                                        table.Cell().Element(c => Cell(c)).Text($"{process.VirtualMemoryMb:F0}");
+                                        table.Cell().Element(c => Cell(c)).Text(process.HandleCount.ToString());
+                                        table.Cell().Element(c => Cell(c)).Text(process.CpuUsagePercent?.ToString("F1") ?? "-");
+                                        table.Cell().Element(c => Cell(c, true)).Text(insight.Reason);
+                                        
+                                        // Добавляем информацию о dump-файле, если он был создан
+                                        if (!string.IsNullOrWhiteSpace(insight.StackTrace))
+                                        {
+                                            // Добавляем дополнительные ячейки для dump-файла (span через все колонки)
+                                            var dumpText = $"📁 Dump-файл создан:\n{insight.StackTrace}";
+                                            table.Cell().ColumnSpan(7).Element(c => c
+                                                .PaddingVertical(4)
+                                                .PaddingHorizontal(8)
+                                                .Background(Colors.Grey.Lighten3))
+                                                .Text(dumpText)
+                                                .FontSize(9);
+                                        }
+                                    }
+                                }
                             });
-
-                            table.Header(header =>
-                            {
-                                header.Cell().Element(c => HeaderCell(c)).Text("Процесс");
-                                header.Cell().Element(c => HeaderCell(c)).Text("PID");
-                                header.Cell().Element(c => HeaderCell(c)).Text("Working Set (MB)");
-                                header.Cell().Element(c => HeaderCell(c)).Text("Virtual (MB)");
-                                header.Cell().Element(c => HeaderCell(c)).Text("Handles");
-                                header.Cell().Element(c => HeaderCell(c)).Text("CPU %");
-                                header.Cell().Element(c => HeaderCell(c)).Text("Leak?");
-                            });
-
-                            var insightsByPid = latest.Insights.ToDictionary(i => i.ProcessId, i => i);
-                            foreach (var p in latest.Processes.OrderByDescending(p => p.WorkingSetMb).Take(40))
-                            {
-                                insightsByPid.TryGetValue(p.ProcessId, out var insight);
-                                var isLeak = insight?.IsLeakSuspected == true;
-
-                                table.Cell().Element(c => Cell(c)).Text(p.ProcessName);
-                                table.Cell().Element(c => Cell(c)).Text(p.ProcessId.ToString());
-                                table.Cell().Element(c => Cell(c)).Text($"{p.WorkingSetMb:F0}");
-                                table.Cell().Element(c => Cell(c)).Text($"{p.VirtualMemoryMb:F0}");
-                                table.Cell().Element(c => Cell(c)).Text(p.HandleCount.ToString());
-                                table.Cell().Element(c => Cell(c)).Text(p.CpuUsagePercent?.ToString("F1") ?? "-");
-                                table.Cell().Element(c => Cell(c, isLeak))
-                                    .Text(isLeak ? "LEAK" : "OK");
-                            }
-                        });
+                        }
+                        else
+                        {
+                            col.Item().Text($"Последний цикл мониторинга: {latest.StartedUtc.ToLocalTime():g}")
+                                .FontSize(13).SemiBold();
+                            col.Item().Text($"Длительность: {latest.Duration}");
+                            col.Item().Text("Утечки не обнаружены в последнем цикле.").Italic();
+                        }
                     }
                     else
                     {
