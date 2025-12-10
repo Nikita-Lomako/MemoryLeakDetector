@@ -22,13 +22,13 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
     public ProcessBaseline Update(ProcessMetricSnapshot snapshot)
     {
         var tracker = _trackers.GetOrAdd(snapshot.ProcessId, _ => new BaselineTracker(snapshot.ProcessId, snapshot.ProcessName, _options.BaselineWindow));
-        return tracker.Update(snapshot);
+        return tracker.Update(snapshot, _options.UseMedianForBaseline, _options.EnableTrendAnalysis);
     }
 
     public ProcessBaseline? Get(int processId)
     {
         return _trackers.TryGetValue(processId, out var tracker)
-            ? tracker.ToBaseline()
+            ? tracker.ToBaseline(_options.UseMedianForBaseline, _options.EnableTrendAnalysis)
             : null;
     }
 
@@ -72,7 +72,7 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
         public string ProcessName { get; }
         public DateTime LastUpdatedUtc { get; private set; }
 
-        public ProcessBaseline Update(ProcessMetricSnapshot snapshot)
+        public ProcessBaseline Update(ProcessMetricSnapshot snapshot, bool useMedian, bool enableTrendAnalysis)
         {
             lock (_sync)
             {
@@ -81,30 +81,55 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
                 EnqueueSample(_handleSamples, snapshot.HandleCount);
                 LastUpdatedUtc = snapshot.CapturedAtUtc;
 
-                return ToBaselineInternal();
+                return ToBaselineInternal(useMedian, enableTrendAnalysis);
             }
         }
 
-        public ProcessBaseline ToBaseline()
+        public ProcessBaseline ToBaseline(bool useMedian, bool enableTrendAnalysis)
         {
             lock (_sync)
             {
-                return ToBaselineInternal();
+                return ToBaselineInternal(useMedian, enableTrendAnalysis);
             }
         }
 
-        private ProcessBaseline ToBaselineInternal()
+        private ProcessBaseline ToBaselineInternal(bool useMedian, bool enableTrendAnalysis)
         {
             var sampleCount = _workingSetSamples.Count;
+            var workingSetList = _workingSetSamples.ToList();
+            var virtualMemoryList = _virtualMemorySamples.ToList();
+            var handleList = _handleSamples.ToList();
+
+            var workingSetValue = useMedian 
+                ? CalculateMedian(workingSetList) 
+                : CalculateAverage(workingSetList);
+                
+            var virtualMemoryValue = useMedian 
+                ? CalculateMedian(virtualMemoryList) 
+                : CalculateAverage(virtualMemoryList);
+                
+            var handleValue = useMedian 
+                ? CalculateMedian(handleList) 
+                : CalculateAverage(handleList);
+
+            double? trend = null;
+            if (enableTrendAnalysis && workingSetList.Count >= 3)
+            {
+                trend = CalculateTrend(workingSetList);
+            }
 
             return new ProcessBaseline(
                 ProcessId,
                 ProcessName,
-                Average(_workingSetSamples),
-                Average(_virtualMemorySamples),
-                Average(_handleSamples),
+                CalculateAverage(workingSetList),
+                CalculateAverage(virtualMemoryList),
+                CalculateAverage(handleList),
                 sampleCount,
-                LastUpdatedUtc);
+                LastUpdatedUtc,
+                useMedian ? workingSetValue : CalculateMedian(workingSetList),
+                useMedian ? virtualMemoryValue : CalculateMedian(virtualMemoryList),
+                useMedian ? handleValue : CalculateMedian(handleList),
+                trend);
         }
 
         private void EnqueueSample(Queue<double> queue, double value)
@@ -116,7 +141,7 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
             queue.Enqueue(value);
         }
 
-        private static double Average(IEnumerable<double> values)
+        private static double CalculateAverage(IEnumerable<double> values)
         {
             var list = values.ToList();
             if (list.Count == 0)
@@ -126,6 +151,53 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
 
             return Math.Round(list.Average(), 2);
         }
+
+        private static double CalculateMedian(List<double> values)
+        {
+            if (values.Count == 0)
+            {
+                return 0;
+            }
+
+            var sorted = values.OrderBy(x => x).ToList();
+            var mid = sorted.Count / 2;
+
+            if (sorted.Count % 2 == 0)
+            {
+                return Math.Round((sorted[mid - 1] + sorted[mid]) / 2.0, 2);
+            }
+            else
+            {
+                return Math.Round(sorted[mid], 2);
+            }
+        }
+
+        private static double? CalculateTrend(List<double> values)
+        {
+            if (values.Count < 3)
+            {
+                return null;
+            }
+
+            // Используем линейную регрессию для вычисления тренда
+            // Возвращаем наклон линии (slope)
+            var n = values.Count;
+            var x = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
+            var y = values.ToArray();
+
+            var sumX = x.Sum();
+            var sumY = y.Sum();
+            var sumXY = x.Zip(y, (xi, yi) => xi * yi).Sum();
+            var sumX2 = x.Sum(xi => xi * xi);
+
+            var denominator = n * sumX2 - sumX * sumX;
+            if (Math.Abs(denominator) < 0.0001)
+            {
+                return null;
+            }
+
+            var slope = (n * sumXY - sumX * sumY) / denominator;
+            return Math.Round(slope, 4);
+        }
     }
 }
-

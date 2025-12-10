@@ -1,5 +1,6 @@
 using MemoryLeakDetector.Core.Abstractions;
 using MemoryLeakDetector.Core.Models;
+using MemoryLeakDetector.Core.Services.Detection;
 using Microsoft.Extensions.Logging;
 using System.Linq;
 
@@ -43,21 +44,11 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
 
                 if (insight.IsLeakSuspected)
                 {
-                    try
-                    {
-                        insight.StackTrace = _stackTraceProvider.TryCaptureStackTrace(snapshot.ProcessId, snapshot.ProcessName);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogDebug(ex, "Failed to capture stack trace for {ProcessName} ({ProcessId})", snapshot.ProcessName, snapshot.ProcessId);
-                    }
+                    CaptureStackTraceForLeak(insight, snapshot);
+                    LogLeakDetection(insight, snapshot);
                 }
-                insights.Add(insight);
 
-                if (insight.IsLeakSuspected)
-                {
-                    _logger.LogWarning("Leak suspected for {ProcessName} ({ProcessId}): {Reason}", snapshot.ProcessName, snapshot.ProcessId, insight.Reason);
-                }
+                insights.Add(insight);
             }
             catch (Exception ex)
             {
@@ -66,10 +57,34 @@ public sealed class MonitoringCoordinator : IMonitoringCoordinator
             }
         }
 
-        _baselineRepository.PruneInactive(snapshots.Select(snapshot => snapshot.ProcessId));
+        var activeProcessIds = snapshots.Select(snapshot => snapshot.ProcessId).ToList();
+        _baselineRepository.PruneInactive(activeProcessIds);
+        
+        // Очистка истории подозрений для неактивных процессов
+        if (_leakDetectionStrategy is ThresholdLeakDetectionStrategy thresholdStrategy)
+        {
+            thresholdStrategy.PruneSuspicionHistory(activeProcessIds);
+        }
 
         var duration = DateTimeOffset.UtcNow - started;
         return new MonitoringCycleResult(started, duration, snapshots, insights, errors);
+    }
+
+    private void CaptureStackTraceForLeak(LeakDetectionInsight insight, ProcessMetricSnapshot snapshot)
+    {
+        try
+        {
+            insight.StackTrace = _stackTraceProvider.TryCaptureStackTrace(snapshot.ProcessId, snapshot.ProcessName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Failed to capture stack trace for {ProcessName} ({ProcessId})", snapshot.ProcessName, snapshot.ProcessId);
+        }
+    }
+
+    private void LogLeakDetection(LeakDetectionInsight insight, ProcessMetricSnapshot snapshot)
+    {
+        _logger.LogWarning("Leak suspected for {ProcessName} ({ProcessId}): {Reason}", snapshot.ProcessName, snapshot.ProcessId, insight.Reason);
     }
 }
 

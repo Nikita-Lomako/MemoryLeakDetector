@@ -1,0 +1,141 @@
+<UserControl x:Class="MemoryLeakDetector.UI.Views.ReportsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignWidth="800"
+             d:DesignHeight="600">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="Генерация отчетов"
+                   FontSize="22"
+                   FontWeight="SemiBold"
+                   Margin="0,0,0,16" />
+
+        <Border Grid.Row="1"
+                Padding="16"
+                Background="{DynamicResource ControlBackgroundBrush}"
+                CornerRadius="8"
+                Margin="0,0,0,16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Text="Период отчета:"
+                           Grid.Row="0"
+                           Grid.Column="0"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,8" />
+
+                <DatePicker SelectedDate="{Binding FromDate}"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Margin="0,0,16,8" />
+
+                <TextBlock Text="до:"
+                           Grid.Row="0"
+                           Grid.Column="2"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,8" />
+
+                <DatePicker SelectedDate="{Binding ToDate}"
+                            Grid.Row="0"
+                            Grid.Column="3"
+                            Margin="0,0,0,8" />
+
+                <TextBlock Text="{Binding StatusMessage}"
+                           Grid.Row="1"
+                           Grid.Column="0"
+                           Grid.ColumnSpan="4"
+                           Opacity="0.7"
+                           Margin="0,8,0,0" />
+
+                <TextBlock Text="{Binding TotalResultsCount, StringFormat=Доступно записей: {0}}"
+                           Grid.Row="1"
+                           Grid.Column="4"
+                           Opacity="0.7"
+                           Margin="16,8,0,0"
+                           HorizontalAlignment="Right" />
+            </Grid>
+        </Border>
+
+        <Border Grid.Row="2"
+                Padding="16"
+                Background="{DynamicResource ControlBackgroundBrush}"
+                CornerRadius="8"
+                Margin="0,0,0,16">
+            <StackPanel>
+                <TextBlock Text="Формат отчета:"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,12" />
+
+                    <UniformGrid Columns="3" HorizontalAlignment="Stretch">
+                    <Button Content="Экспорт JSON"
+                            Command="{Binding GenerateJsonCommand}"
+                            Padding="20,12"
+                            Margin="0,0,8,0"
+                            ToolTip="Экспорт данных в формате JSON" />
+
+                    <Button Content="Экспорт HTML"
+                            Command="{Binding GenerateHtmlCommand}"
+                            Padding="20,12"
+                            Margin="4,0"
+                            ToolTip="Экспорт отчета в формате HTML для просмотра в браузере" />
+
+                    <Button Content="Экспорт PDF"
+                            Command="{Binding GeneratePdfCommand}"
+                            Padding="20,12"
+                            Margin="8,0,0,0"
+                            ToolTip="Экспорт отчета в формате PDF" />
+                </UniformGrid>
+
+                <TextBlock Text="{Binding StatusMessage}"
+                           Margin="0,12,0,0"
+                           Opacity="0.7"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="3"
+                Padding="16"
+                Background="{DynamicResource ControlBackgroundBrush}"
+                CornerRadius="8">
+            <ScrollViewer>
+                <StackPanel>
+                    <TextBlock Text="Информация об отчетах"
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,12" />
+
+                    <TextBlock TextWrapping="Wrap"
+                               Opacity="0.8"
+                               LineHeight="24">
+                        <Run Text="• " FontWeight="Bold" /><Run Text="JSON" FontWeight="SemiBold" /> — структурированные данные мониторинга в формате JSON, подходит для программной обработки.<LineBreak />
+                        <Run Text="• " FontWeight="Bold" /><Run Text="HTML" FontWeight="SemiBold" /> — визуальный отчет с графиками и таблицами, открывается в браузере.<LineBreak />
+                        <Run Text="• " FontWeight="Bold" /><Run Text="PDF" FontWeight="SemiBold" /> — документ для печати и архивирования с полной информацией о мониторинге.<LineBreak />
+                        <LineBreak />
+                        Отчеты содержат информацию о всех отслеживаемых процессах, обнаруженных утечках памяти, метриках производительности и рекомендациях по исправлению.
+                    </TextBlock>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+    </Grid>
+</UserControl>
+

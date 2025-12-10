@@ -1,8 +1,12 @@
 using System.Collections.Concurrent;
+using MemoryLeakDetector.Core.Abstractions;
 using MemoryLeakDetector.Core.Contracts;
 
-namespace MemoryLeakDetector.API.Services;
+namespace MemoryLeakDetector.Core.Services.History;
 
+/// <summary>
+/// In-memory реализация хранилища истории результатов мониторинга.
+/// </summary>
 public sealed class InMemoryMonitoringHistoryStore : IMonitoringHistoryStore
 {
     private readonly ConcurrentQueue<MonitoringResultDto> _results = new();
@@ -45,5 +49,4 @@ public sealed class InMemoryMonitoringHistoryStore : IMonitoringHistoryStore
         return query.OrderBy(r => r.StartedUtc).ToList();
     }
 }
-
 

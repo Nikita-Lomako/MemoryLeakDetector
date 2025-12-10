@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using MemoryLeakDetector.Core.Abstractions;
 using MemoryLeakDetector.Core.Options;
 using MemoryLeakDetector.UI.Services.Data;
 using MemoryLeakDetector.UI.Services.Monitoring;
+using MemoryLeakDetector.UI.Services.Reporting;
 using MemoryLeakDetector.UI.ViewModels;
 using System.Windows;
 
@@ -25,11 +27,14 @@ namespace MemoryLeakDetector.UI
             services.AddSingleton<IMonitoringResultSubscriber, NamedPipeMonitoringResultSubscriber>();
             services.AddSingleton<StreamProcessDataProvider>();
             services.AddSingleton<IProcessDataProvider>(provider => provider.GetRequiredService<StreamProcessDataProvider>());
+            services.AddSingleton<InMemoryHistoryProvider>();
+            services.AddSingleton<IReportGenerator, MonitoringReportGenerator>();
             services.AddHostedService<MonitoringResultListener>();
 
             services.AddSingleton<DashboardViewModel>();
             services.AddSingleton<ProcessesViewModel>();
             services.AddSingleton<AnalyticsViewModel>();
+            services.AddSingleton<ReportsViewModel>();
             services.AddSingleton<ShellViewModel>();
 
             services.AddSingleton<MainWindow>(provider => new MainWindow
