@@ -12,6 +12,7 @@ namespace MemoryLeakDetector.Service
         private readonly IMonitoringCoordinator _monitoringCoordinator;
         private readonly IMonitoringResultStream _resultStream;
         private readonly IMonitoringResultMapper _resultMapper;
+        private readonly IMonitoringHistoryStore _historyStore;
         private readonly MonitoringOptions _options;
 
         public Worker(
@@ -19,12 +20,14 @@ namespace MemoryLeakDetector.Service
             IMonitoringCoordinator monitoringCoordinator,
             IMonitoringResultStream resultStream,
             IMonitoringResultMapper resultMapper,
+            IMonitoringHistoryStore historyStore,
             IOptions<MonitoringOptions> options)
         {
             _logger = logger;
             _monitoringCoordinator = monitoringCoordinator;
             _resultStream = resultStream;
             _resultMapper = resultMapper;
+            _historyStore = historyStore;
             _options = options.Value;
         }
 
@@ -37,7 +40,13 @@ namespace MemoryLeakDetector.Service
                 try
                 {
                     var result = await _monitoringCoordinator.RunCycleAsync(stoppingToken);
-                    await _resultStream.PublishAsync(_resultMapper.Map(result), stoppingToken);
+                    var dto = _resultMapper.Map(result);
+                    
+                    // Публикуем в поток для подписчиков (например, через Named Pipe для UI)
+                    await _resultStream.PublishAsync(dto, stoppingToken);
+                    
+                    // Сохраняем в историю для последующего анализа и отчетов
+                    _historyStore.Add(dto);
 
                     _logger.LogInformation(
                         "Monitoring cycle finished in {Duration} — processes: {Processes}, leaks: {Leaks}, errors: {Errors}",

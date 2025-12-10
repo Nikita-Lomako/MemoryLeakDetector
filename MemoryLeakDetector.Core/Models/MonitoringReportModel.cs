@@ -1,8 +1,11 @@
 using MemoryLeakDetector.Core.Contracts;
 
-namespace MemoryLeakDetector.API.Models;
+namespace MemoryLeakDetector.Core.Models;
 
-public sealed class MonitoringReportViewModel
+/// <summary>
+/// Модель данных для отчета по мониторингу памяти.
+/// </summary>
+public sealed class MonitoringReportModel
 {
     public DateTimeOffset GeneratedAtUtc { get; init; } = DateTimeOffset.UtcNow;
 
@@ -12,5 +15,4 @@ public sealed class MonitoringReportViewModel
 
     public IReadOnlyList<MonitoringResultDto> Results { get; init; } = Array.Empty<MonitoringResultDto>();
 }
-
 

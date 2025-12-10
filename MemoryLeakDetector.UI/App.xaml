@@ -46,6 +46,9 @@
             <DataTemplate DataType="{x:Type vm:AnalyticsViewModel}">
                 <views:AnalyticsView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ReportsViewModel}">
+                <views:ReportsView />
+            </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -72,7 +72,7 @@ namespace MemoryLeakDetector.UI.ViewModels
         private void ApplySnapshots(IReadOnlyCollection<ProcessSnapshot> snapshots)
         {
             TotalProcesses = snapshots.Count;
-            TrackedProcesses = Math.Min(100, snapshots.Count);
+            TrackedProcesses = snapshots.Count;
             ActiveAlerts = snapshots.Count(snapshot => snapshot.IsLeakSuspected);
             LastUpdated = DateTime.Now;
 

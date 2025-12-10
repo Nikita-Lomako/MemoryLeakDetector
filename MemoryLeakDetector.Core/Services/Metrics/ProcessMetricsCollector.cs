@@ -88,12 +88,18 @@ public sealed class ProcessMetricsCollector : IProcessMetricsCollector
 
         var ordered = snapshots
             .OrderByDescending(snapshot => snapshot.WorkingSetMb)
-            .Take(_options.MaxProcesses)
             .ToList();
 
-        PruneCpuSamples(ordered);
+        // Применяем ограничение только если оно указано
+        if (_options.MaxProcesses.HasValue && _options.MaxProcesses.Value > 0 && ordered.Count > _options.MaxProcesses.Value)
+        {
+            ordered = ordered.Take(_options.MaxProcesses.Value).ToList();
+        }
 
-        return Task.FromResult<IReadOnlyCollection<ProcessMetricSnapshot>>(ordered);
+        var result = ordered;
+        PruneCpuSamples(result);
+
+        return Task.FromResult<IReadOnlyCollection<ProcessMetricSnapshot>>(result);
     }
 
     private void PruneCpuSamples(IReadOnlyCollection<ProcessMetricSnapshot> activeSnapshots)
