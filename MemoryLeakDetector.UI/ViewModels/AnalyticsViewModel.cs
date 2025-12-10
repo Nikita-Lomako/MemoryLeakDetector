@@ -62,6 +62,15 @@ public sealed partial class AnalyticsViewModel : ObservableObject
 
         _ = RefreshAsync();
     }
+    
+    // Отписка от событий для предотвращения утечек
+    ~AnalyticsViewModel()
+    {
+        if (_dataProvider != null)
+        {
+            _dataProvider.ProcessesUpdated -= OnProcessesUpdated;
+        }
+    }
 
     private Task RefreshAsync()
     {

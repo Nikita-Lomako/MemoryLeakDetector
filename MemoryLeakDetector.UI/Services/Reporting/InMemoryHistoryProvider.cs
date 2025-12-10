@@ -44,10 +44,17 @@ public sealed class InMemoryHistoryProvider
 
         if (to is not null)
         {
-            query = query.Where(r => r.StartedUtc <= to.Value);
+            // Включаем результаты до конца выбранного дня (23:59:59)
+            var toDate = to.Value.Date.AddDays(1).AddSeconds(-1);
+            query = query.Where(r => r.StartedUtc <= toDate);
         }
 
         return query.OrderBy(r => r.StartedUtc).ToList();
+    }
+    
+    public int GetTotalCount()
+    {
+        return _results.Count;
     }
 
     public IReadOnlyList<LeakInsightDto> GetLeaks(int recentCycles = 5)

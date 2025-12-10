@@ -32,5 +32,17 @@ public sealed class MonitoringOptions
     /// Включить трендовый анализ для детекции постепенных утечек.
     /// </summary>
     public bool EnableTrendAnalysis { get; set; } = true;
+    
+    /// <summary>
+    /// Минимальный интервал между созданием dump файлов для одного процесса (в секундах).
+    /// Помогает предотвратить блокировку системы при частых утечках.
+    /// 0 = без ограничений, -1 = отключить создание dump файлов.
+    /// </summary>
+    public int DumpCreationMinIntervalSeconds { get; set; } = 60;
+    
+    /// <summary>
+    /// Создавать dump файлы асинхронно (не блокировать основной поток мониторинга).
+    /// </summary>
+    public bool CreateDumpsAsync { get; set; } = true;
 }
 
