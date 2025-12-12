@@ -9,6 +9,8 @@ using System;
 
 namespace MemoryLeakDetector.Core.Services.Baselines;
 
+// In-memory хранилище baseline для процессов
+// Хранит историю метрик и вычисляет baseline (медиана/среднее + тренд)
 public sealed class InMemoryBaselineRepository : IBaselineRepository
 {
     private readonly ConcurrentDictionary<int, BaselineTracker> _trackers = new();
@@ -19,12 +21,14 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
         _options = options.Value;
     }
 
+    // Обновить baseline, добавив новые метрики
     public ProcessBaseline Update(ProcessMetricSnapshot snapshot)
     {
         var tracker = _trackers.GetOrAdd(snapshot.ProcessId, _ => new BaselineTracker(snapshot.ProcessId, snapshot.ProcessName, _options.BaselineWindow));
         return tracker.Update(snapshot, _options.UseMedianForBaseline, _options.EnableTrendAnalysis);
     }
 
+    // Получить текущий baseline без обновления
     public ProcessBaseline? Get(int processId)
     {
         return _trackers.TryGetValue(processId, out var tracker)
@@ -32,11 +36,13 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
             : null;
     }
 
+    // Удалить baseline процесса
     public void Remove(int processId)
     {
         _trackers.TryRemove(processId, out _);
     }
 
+    // Очистить baseline для неактивных процессов
     public void PruneInactive(IEnumerable<int> activeProcessIds)
     {
         var activeSet = new HashSet<int>(activeProcessIds);
@@ -50,6 +56,7 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
         }
     }
 
+    // Внутренний класс для отслеживания истории метрик одного процесса
     private sealed class BaselineTracker
     {
         private readonly object _sync = new();
@@ -72,6 +79,7 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
         public string ProcessName { get; }
         public DateTime LastUpdatedUtc { get; private set; }
 
+        // Обновить историю и вернуть новый baseline
         public ProcessBaseline Update(ProcessMetricSnapshot snapshot, bool useMedian, bool enableTrendAnalysis)
         {
             lock (_sync)
@@ -85,6 +93,7 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
             }
         }
 
+        // Получить baseline без изменения данных
         public ProcessBaseline ToBaseline(bool useMedian, bool enableTrendAnalysis)
         {
             lock (_sync)
@@ -101,17 +110,18 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
             var handleList = _handleSamples.ToList();
 
             var workingSetValue = useMedian 
-                ? CalculateMedian(workingSetList) 
+                ? CalculateMedian(workingSetList)
                 : CalculateAverage(workingSetList);
                 
             var virtualMemoryValue = useMedian 
-                ? CalculateMedian(virtualMemoryList) 
+                ? CalculateMedian(virtualMemoryList)
                 : CalculateAverage(virtualMemoryList);
                 
             var handleValue = useMedian 
-                ? CalculateMedian(handleList) 
+                ? CalculateMedian(handleList)
                 : CalculateAverage(handleList);
 
+            // Тренд через линейную регрессию (минимум 3 точки)
             double? trend = null;
             if (enableTrendAnalysis && workingSetList.Count >= 3)
             {
@@ -132,6 +142,7 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
                 trend);
         }
 
+        // Добавить сэмпл, удалив старый при переполнении (скользящее окно)
         private void EnqueueSample(Queue<double> queue, double value)
         {
             if (queue.Count == _maxSamples)
@@ -152,6 +163,7 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
             return Math.Round(list.Average(), 2);
         }
 
+        // Медиана - средний элемент отсортированного списка
         private static double CalculateMedian(List<double> values)
         {
             if (values.Count == 0)
@@ -172,6 +184,7 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
             }
         }
 
+        // Линейная регрессия для вычисления тренда (slope)
         private static double? CalculateTrend(List<double> values)
         {
             if (values.Count < 3)
@@ -179,8 +192,6 @@ public sealed class InMemoryBaselineRepository : IBaselineRepository
                 return null;
             }
 
-            // Используем линейную регрессию для вычисления тренда
-            // Возвращаем наклон линии (slope)
             var n = values.Count;
             var x = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
             var y = values.ToArray();

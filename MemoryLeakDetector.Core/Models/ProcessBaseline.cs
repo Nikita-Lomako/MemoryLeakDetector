@@ -1,5 +1,6 @@
 namespace MemoryLeakDetector.Core.Models;
 
+// Baseline метрик процесса - "нормальное" состояние на основе истории
 public sealed class ProcessBaseline
 {
     public ProcessBaseline(
@@ -36,26 +37,11 @@ public sealed class ProcessBaseline
     public int SampleCount { get; }
     public DateTime LastUpdatedUtc { get; }
     
-    /// <summary>
-    /// Медианное значение Working Set в MB.
-    /// Более устойчиво к выбросам чем среднее.
-    /// </summary>
+    // Медиана - более устойчива к выбросам чем среднее
     public double MedianWorkingSetMb { get; }
-    
-    /// <summary>
-    /// Медианное значение виртуальной памяти в MB.
-    /// </summary>
     public double MedianVirtualMemoryMb { get; }
-    
-    /// <summary>
-    /// Медианное значение количества handles.
-    /// </summary>
     public double MedianHandleCount { get; }
     
-    /// <summary>
-    /// Тренд Working Set (скорость роста в MB/цикл).
-    /// Положительное значение означает рост, отрицательное - снижение.
-    /// </summary>
+    // Тренд - скорость роста памяти в MB/цикл (положительный = рост)
     public double? TrendWorkingSetMb { get; }
 }
-

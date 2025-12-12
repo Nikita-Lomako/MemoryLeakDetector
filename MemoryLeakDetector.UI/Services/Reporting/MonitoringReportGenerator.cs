@@ -8,9 +8,7 @@ using QuestPDF.Infrastructure;
 
 namespace MemoryLeakDetector.UI.Services.Reporting;
 
-/// <summary>
-/// Реализация генератора отчетов для UI приложения.
-/// </summary>
+// Генератор отчетов (JSON, HTML, PDF)
 public sealed class MonitoringReportGenerator : IReportGenerator
 {
     static MonitoringReportGenerator()
@@ -156,12 +154,12 @@ public sealed class MonitoringReportGenerator : IReportGenerator
                         html.AppendLine($"                    <td class=\"muted\">{EscapeHtml(insight.Reason)}</td>");
                         html.AppendLine("                </tr>");
                         
-                        // Добавляем информацию о dump-файле, если он был создан
+                        // Добавляем рекомендации по анализу, если есть
                         if (!string.IsNullOrWhiteSpace(insight.StackTrace))
                         {
-                            html.AppendLine("                <tr class=\"dump-info\">");
+                            html.AppendLine("                <tr class=\"analysis-info\">");
                             html.AppendLine("                    <td colspan=\"7\" style=\"padding-left: 40px; padding-top: 8px; padding-bottom: 8px; background-color: #f5f5f5; font-size: 11px;\">");
-                            html.AppendLine("                        <strong>📁 Dump-файл создан:</strong><br />");
+                            html.AppendLine("                        <strong>📋 Рекомендации по анализу:</strong><br />");
                             html.AppendLine($"                        <pre style=\"margin: 4px 0; white-space: pre-wrap; font-family: Consolas, monospace;\">{EscapeHtml(insight.StackTrace)}</pre>");
                             html.AppendLine("                    </td>");
                             html.AppendLine("                </tr>");
@@ -215,12 +213,12 @@ public sealed class MonitoringReportGenerator : IReportGenerator
                     html.AppendLine($"                    <td>+{handleDelta} ({leak.HandleGrowthPercent:F1}%)</td>");
                     html.AppendLine("                </tr>");
                     
-                    // Добавляем информацию о dump-файле, если он был создан
+                    // Добавляем рекомендации по анализу, если есть
                     if (!string.IsNullOrWhiteSpace(leak.StackTrace))
                     {
-                        html.AppendLine("                <tr class=\"dump-info\">");
+                        html.AppendLine("                <tr class=\"analysis-info\">");
                         html.AppendLine("                    <td colspan=\"6\" style=\"padding-left: 40px; padding-top: 8px; padding-bottom: 8px; background-color: #f5f5f5; font-size: 11px;\">");
-                        html.AppendLine("                        <strong>📁 Dump-файл создан:</strong><br />");
+                        html.AppendLine("                        <strong>📋 Рекомендации по анализу:</strong><br />");
                         html.AppendLine($"                        <pre style=\"margin: 4px 0; white-space: pre-wrap; font-family: Consolas, monospace;\">{EscapeHtml(leak.StackTrace)}</pre>");
                         html.AppendLine("                    </td>");
                         html.AppendLine("                </tr>");
@@ -387,16 +385,15 @@ public sealed class MonitoringReportGenerator : IReportGenerator
                                         table.Cell().Element(c => Cell(c)).Text(process.CpuUsagePercent?.ToString("F1") ?? "-");
                                         table.Cell().Element(c => Cell(c, true)).Text(insight.Reason);
                                         
-                                        // Добавляем информацию о dump-файле, если он был создан
+                                        // Добавляем рекомендации по анализу, если есть
                                         if (!string.IsNullOrWhiteSpace(insight.StackTrace))
                                         {
-                                            // Добавляем дополнительные ячейки для dump-файла (span через все колонки)
-                                            var dumpText = $"📁 Dump-файл создан:\n{insight.StackTrace}";
+                                            var analysisText = $"📋 Рекомендации:\n{insight.StackTrace}";
                                             table.Cell().ColumnSpan(7).Element(c => c
                                                 .PaddingVertical(4)
                                                 .PaddingHorizontal(8)
                                                 .Background(Colors.Grey.Lighten3))
-                                                .Text(dumpText)
+                                                .Text(analysisText)
                                                 .FontSize(9);
                                         }
                                     }

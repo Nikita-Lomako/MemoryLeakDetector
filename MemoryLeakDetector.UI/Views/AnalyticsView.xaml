@@ -65,43 +65,52 @@
                                Margin="0,0,0,8"
                                Grid.Row="0" />
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto"
-                                  HorizontalScrollBarVisibility="Auto"
-                                  Grid.Row="1">
-                        <ItemsControl ItemsSource="{Binding LeakProcesses}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <Border Margin="0,4"
-                                            Padding="8"
-                                            BorderBrush="{StaticResource CardBorderBrush}"
-                                            BorderThickness="1"
-                                            CornerRadius="6">
-                                        <StackPanel>
-                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
-                                                <TextBlock Text="{Binding Name}"
-                                                           FontWeight="SemiBold" />
-                                                <TextBlock Text="{Binding ProcessId, StringFormat= (PID {0})}"
-                                                           Margin="8,0,0,0"
-                                                           Opacity="0.7" />
-                                                <TextBlock Text="{Binding GrowthPercentage, StringFormat= · {0:F1}%}"
-                                                           Margin="8,0,0,0"
-                                                           Foreground="{Binding IsLeakSuspected, Converter={StaticResource BooleanToBrushConverter}}" />
-                                            </StackPanel>
-                                            <TextBlock Text="{Binding LeakReason}"
-                                                       TextWrapping="Wrap"
-                                                       Opacity="0.8" />
-                                            <TextBlock Text="{Binding StackTrace}"
-                                                       Margin="0,4,0,0"
-                                                       TextWrapping="Wrap"
-                                                       FontFamily="Consolas"
-                                                       FontSize="10"
+                    <ListBox ItemsSource="{Binding LeakProcesses}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                             BorderThickness="0"
+                             Background="Transparent"
+                             Grid.Row="1">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Margin="0,4"
+                                        Padding="8"
+                                        BorderBrush="{StaticResource CardBorderBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="6">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,4">
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding ProcessId, StringFormat= (PID {0})}"
+                                                       Margin="8,0,0,0"
                                                        Opacity="0.7" />
+                                            <TextBlock Text="{Binding GrowthPercentage, StringFormat= · {0:F1}%}"
+                                                       Margin="8,0,0,0"
+                                                       Foreground="{Binding IsLeakSuspected, Converter={StaticResource BooleanToBrushConverter}}" />
                                         </StackPanel>
-                                    </Border>
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                                        <TextBlock Text="{Binding LeakReason}"
+                                                   TextWrapping="Wrap"
+                                                   Opacity="0.8" />
+                                        <TextBlock Text="{Binding StackTrace}"
+                                                   Margin="0,4,0,0"
+                                                   TextWrapping="Wrap"
+                                                   FontFamily="Consolas"
+                                                   FontSize="10"
+                                                   Opacity="0.7" />
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
                 </Grid>
             </Border>
 
@@ -115,17 +124,26 @@
                                FontWeight="SemiBold"
                                Margin="0,0,0,8" />
 
-                    <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <ItemsControl ItemsSource="{Binding Recommendations}">
-                            <ItemsControl.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}"
-                                               TextWrapping="Wrap"
-                                               Margin="0,0,0,8" />
-                                </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                    </ScrollViewer>
+                    <ListBox ItemsSource="{Binding Recommendations}"
+                             ScrollViewer.VerticalScrollBarVisibility="Auto"
+                             BorderThickness="0"
+                             Background="Transparent">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}"
+                                           TextWrapping="Wrap"
+                                           Margin="0,0,0,8" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Margin" Value="0" />
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+                    </ListBox>
                 </StackPanel>
             </Border>
         </Grid>

@@ -1,13 +1,11 @@
 using System.Collections.Concurrent;
+using System.Linq;
 using MemoryLeakDetector.Core.Abstractions;
 using MemoryLeakDetector.Core.Contracts;
 
 namespace MemoryLeakDetector.UI.Services.Reporting;
 
-/// <summary>
-/// Провайдер истории мониторинга, который накапливает данные из потока результатов.
-/// Для полной интеграции в будущем можно расширить для получения истории через Named Pipe из Service.
-/// </summary>
+// Провайдер истории мониторинга - накапливает данные из потока результатов
 public sealed class InMemoryHistoryProvider
 {
     private readonly ConcurrentQueue<MonitoringResultDto> _results = new();
@@ -35,21 +33,36 @@ public sealed class InMemoryHistoryProvider
 
     public IReadOnlyList<MonitoringResultDto> GetRange(DateTimeOffset? from = null, DateTimeOffset? to = null)
     {
-        IEnumerable<MonitoringResultDto> query = _results.ToArray();
+        // Оптимизация: избегаем полного копирования через ToArray()
+        var result = new List<MonitoringResultDto>();
 
-        if (from is not null)
+        foreach (var item in _results)
         {
-            query = query.Where(r => r.StartedUtc >= from.Value);
+            if (from is not null && item.StartedUtc < from.Value)
+            {
+                continue;
+            }
+
+            if (to is not null)
+            {
+                // Включаем результаты до конца выбранного дня (23:59:59)
+                var toDate = to.Value.Date.AddDays(1).AddSeconds(-1);
+                if (item.StartedUtc > toDate)
+                {
+                    continue;
+                }
+            }
+
+            result.Add(item);
         }
 
-        if (to is not null)
+        // Сортируем только если нужно
+        if (from is not null || to is not null)
         {
-            // Включаем результаты до конца выбранного дня (23:59:59)
-            var toDate = to.Value.Date.AddDays(1).AddSeconds(-1);
-            query = query.Where(r => r.StartedUtc <= toDate);
+            result.Sort((a, b) => a.StartedUtc.CompareTo(b.StartedUtc));
         }
 
-        return query.OrderBy(r => r.StartedUtc).ToList();
+        return result;
     }
     
     public int GetTotalCount()

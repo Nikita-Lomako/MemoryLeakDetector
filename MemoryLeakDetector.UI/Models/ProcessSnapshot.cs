@@ -21,9 +21,7 @@ namespace MemoryLeakDetector.UI.Models
             double? managedHeapMb = null,
             double? gen2CollectionsPerSec = null,
             string? leakReason = null,
-            string? stackTrace = null,
-            string? detectionStrategy = null,
-            double? anomalyScore = null)
+            string? stackTrace = null)
         {
             Name = name;
             ProcessId = processId;
@@ -39,8 +37,6 @@ namespace MemoryLeakDetector.UI.Models
             Gen2CollectionsPerSec = gen2CollectionsPerSec;
             LeakReason = leakReason;
             StackTrace = stackTrace;
-            DetectionStrategy = detectionStrategy;
-            AnomalyScore = anomalyScore;
         }
 
         public string Name { get; }
@@ -55,8 +51,6 @@ namespace MemoryLeakDetector.UI.Models
 
         public string? LeakReason { get; }
         public string? StackTrace { get; }
-        public string? DetectionStrategy { get; }
-        public double? AnomalyScore { get; }
 
         public bool IsLeakSuspected
         {

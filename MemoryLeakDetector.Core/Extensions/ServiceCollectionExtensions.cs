@@ -11,10 +11,10 @@ using Microsoft.Extensions.DependencyInjection;
 using System.Runtime.Versioning;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using Microsoft.Extensions.Logging;
 
 namespace MemoryLeakDetector.Core.Extensions;
 
+// Расширение для регистрации сервисов ядра в DI контейнере
 [SupportedOSPlatform("windows")]
 public static class ServiceCollectionExtensions
 {
@@ -32,24 +32,17 @@ public static class ServiceCollectionExtensions
         services.TryAddSingleton<IGcMetricsProvider, DotNetGcMetricsProvider>();
         services.TryAddSingleton<IProcessMetricsCollector, ProcessMetricsCollector>();
         
-        // Регистрация LeakSuspicionTracker для проверки устойчивости утечек
+        // Трекер подозрений для проверки устойчивости утечек
         services.TryAddSingleton(provider =>
         {
             var options = provider.GetRequiredService<IOptions<MonitoringOptions>>();
             return new LeakSuspicionTracker(options.Value.LeakConfirmationCycles);
         });
         
-        services.TryAddSingleton<ILeakDetectionStrategy, ThresholdLeakDetectionStrategy>();
+        services.TryAddSingleton<ThresholdLeakDetectionStrategy>();
         
-        // Регистрация stack trace provider с rate limiting для отказоустойчивости
-        services.TryAddSingleton<DotNetDiagnosticsStackTraceProvider>();
-        services.TryAddSingleton<IStackTraceProvider>(provider =>
-        {
-            var innerProvider = provider.GetRequiredService<DotNetDiagnosticsStackTraceProvider>();
-            var options = provider.GetRequiredService<IOptions<MonitoringOptions>>();
-            var logger = provider.GetRequiredService<ILogger<RateLimitedStackTraceProvider>>();
-            return new RateLimitedStackTraceProvider(innerProvider, options, logger);
-        });
+        // Провайдер информации о процессах
+        services.TryAddSingleton<IStackTraceProvider, DotNetDiagnosticsStackTraceProvider>();
         
         services.TryAddSingleton<IMonitoringCoordinator, MonitoringCoordinator>();
         services.TryAddSingleton<IMonitoringResultStream, InMemoryMonitoringResultStream>();
@@ -59,4 +52,3 @@ public static class ServiceCollectionExtensions
         return services;
     }
 }
-

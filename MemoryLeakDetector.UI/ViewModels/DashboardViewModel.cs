@@ -59,9 +59,10 @@ namespace MemoryLeakDetector.UI.ViewModels
         {
             var snapshots = _dataProvider.GetProcesses();
 
+            // Используем BeginInvoke для неблокирующего обновления
             if (!_dispatcher.CheckAccess())
             {
-                _dispatcher.Invoke(() => ApplySnapshots(snapshots));
+                _dispatcher.BeginInvoke(() => ApplySnapshots(snapshots), System.Windows.Threading.DispatcherPriority.Background);
             }
             else
             {
@@ -71,30 +72,79 @@ namespace MemoryLeakDetector.UI.ViewModels
 
         private void ApplySnapshots(IReadOnlyCollection<ProcessSnapshot> snapshots)
         {
-            TotalProcesses = snapshots.Count;
-            TrackedProcesses = snapshots.Count;
-            ActiveAlerts = snapshots.Count(snapshot => snapshot.IsLeakSuspected);
-            LastUpdated = DateTime.Now;
-
-            MemoryTrend.Clear();
-            foreach (var point in snapshots
-                         .SelectMany(snapshot => snapshot.Trend)
-                         .OrderBy(point => point.Timestamp)
-                         .GroupBy(point => point.Timestamp)
-                         .Select(group => new TrendPoint(group.Key,
-                             group.Average(pt => pt.WorkingSetMb),
-                             group.Average(pt => pt.VirtualMemoryMb),
-                             (int)group.Average(pt => pt.Handles))))
+            try
             {
-                MemoryTrend.Add(point);
+                TotalProcesses = snapshots.Count;
+                TrackedProcesses = snapshots.Count;
+                
+                // Оптимизация: считаем утечки без LINQ для производительности
+                var leakCount = 0;
+                foreach (var snapshot in snapshots)
+                {
+                    if (snapshot.IsLeakSuspected)
+                        leakCount++;
+                }
+                ActiveAlerts = leakCount;
+                LastUpdated = DateTime.Now;
+
+                // Оптимизация: ограничиваем количество точек тренда для производительности
+                MemoryTrend.Clear();
+                const int maxTrendPoints = 50; // Ограничиваем до 50 точек
+                var trendDict = new Dictionary<DateTime, (double totalWs, double totalVm, int totalHandles, int count)>();
+                
+                foreach (var snapshot in snapshots)
+                {
+                    // Берем только последние точки тренда
+                    var trendPoints = snapshot.Trend.Count > 10 
+                        ? snapshot.Trend.Skip(snapshot.Trend.Count - 10).ToList() 
+                        : snapshot.Trend;
+                        
+                    foreach (var point in trendPoints)
+                    {
+                        if (trendDict.TryGetValue(point.Timestamp, out var existing))
+                        {
+                            trendDict[point.Timestamp] = (
+                                existing.totalWs + point.WorkingSetMb,
+                                existing.totalVm + point.VirtualMemoryMb,
+                                existing.totalHandles + point.Handles,
+                                existing.count + 1);
+                        }
+                        else
+                        {
+                            trendDict[point.Timestamp] = (point.WorkingSetMb, point.VirtualMemoryMb, point.Handles, 1);
+                        }
+                    }
+                }
+                
+                // Сортируем и ограничиваем
+                var sortedPoints = trendDict
+                    .OrderBy(kvp => kvp.Key)
+                    .Take(maxTrendPoints)
+                    .Select(kvp => new TrendPoint(
+                        kvp.Key,
+                        kvp.Value.totalWs / kvp.Value.count,
+                        kvp.Value.totalVm / kvp.Value.count,
+                        kvp.Value.totalHandles / kvp.Value.count));
+                
+                foreach (var point in sortedPoints)
+                {
+                    MemoryTrend.Add(point);
+                }
+
+                TopConsumers.Clear();
+                // Оптимизация: используем простую сортировку вместо OrderByDescending
+                var topProcesses = new List<ProcessSnapshot>(snapshots);
+                topProcesses.Sort((a, b) => b.WorkingSetMb.CompareTo(a.WorkingSetMb));
+                
+                foreach (var process in topProcesses.Take(4))
+                {
+                    TopConsumers.Add(process);
+                }
             }
-
-            TopConsumers.Clear();
-            foreach (var process in snapshots
-                         .OrderByDescending(snapshot => snapshot.WorkingSetMb)
-                         .Take(4))
+            catch (Exception ex)
             {
-                TopConsumers.Add(process);
+                System.Diagnostics.Debug.WriteLine($"Error in DashboardViewModel.ApplySnapshots: {ex.Message}");
+                // Не пробрасываем исключение, чтобы UI не завис
             }
         }
     }

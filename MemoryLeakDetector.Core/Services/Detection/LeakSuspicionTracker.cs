@@ -3,10 +3,7 @@ using System.Linq;
 
 namespace MemoryLeakDetector.Core.Services.Detection;
 
-/// <summary>
-/// Отслеживает историю подозрений на утечки для каждого процесса.
-/// Используется для проверки устойчивости утечки.
-/// </summary>
+// Трекер подозрений на утечки - проверяет устойчивость (N циклов подряд)
 public sealed class LeakSuspicionTracker
 {
     private readonly ConcurrentDictionary<int, LeakSuspicionHistory> _histories = new();
@@ -17,18 +14,14 @@ public sealed class LeakSuspicionTracker
         _confirmationCycles = Math.Max(1, confirmationCycles);
     }
 
-    /// <summary>
-    /// Регистрирует подозрение на утечку для процесса.
-    /// </summary>
+    // Записать подозрение для процесса
     public void RecordSuspicion(int processId, bool isSuspected)
     {
         var history = _histories.GetOrAdd(processId, _ => new LeakSuspicionHistory(_confirmationCycles));
         history.Record(isSuspected);
     }
 
-    /// <summary>
-    /// Проверяет, подтверждена ли утечка (подозрение в N последних циклах подряд).
-    /// </summary>
+    // Проверить подтверждена ли утечка (подозрение N раз подряд)
     public bool IsLeakConfirmed(int processId)
     {
         if (!_histories.TryGetValue(processId, out var history))
@@ -39,9 +32,7 @@ public sealed class LeakSuspicionTracker
         return history.IsConfirmed();
     }
 
-    /// <summary>
-    /// Удаляет историю для неактивных процессов.
-    /// </summary>
+    // Удалить историю для неактивных процессов
     public void PruneInactive(IEnumerable<int> activeProcessIds)
     {
         var activeSet = new HashSet<int>(activeProcessIds);
@@ -77,7 +68,7 @@ public sealed class LeakSuspicionTracker
 
         public bool IsConfirmed()
         {
-            // Утечка подтверждена если все последние N циклов показывали подозрение
+            // Утечка подтверждена если все N последних циклов подозрительны
             if (_recentSuspicions.Count < _confirmationCycles)
             {
                 return false;
@@ -87,4 +78,3 @@ public sealed class LeakSuspicionTracker
         }
     }
 }
-

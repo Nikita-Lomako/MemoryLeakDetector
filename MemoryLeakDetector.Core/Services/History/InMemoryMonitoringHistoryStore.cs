@@ -1,12 +1,11 @@
 using System.Collections.Concurrent;
+using System.Linq;
 using MemoryLeakDetector.Core.Abstractions;
 using MemoryLeakDetector.Core.Contracts;
 
 namespace MemoryLeakDetector.Core.Services.History;
 
-/// <summary>
-/// In-memory реализация хранилища истории результатов мониторинга.
-/// </summary>
+// In-memory хранилище истории результатов мониторинга
 public sealed class InMemoryMonitoringHistoryStore : IMonitoringHistoryStore
 {
     private readonly ConcurrentQueue<MonitoringResultDto> _results = new();
@@ -21,9 +20,9 @@ public sealed class InMemoryMonitoringHistoryStore : IMonitoringHistoryStore
     {
         _results.Enqueue(result);
 
+        // Удаляем старые если превысили лимит
         while (_results.Count > _maxItems && _results.TryDequeue(out _))
         {
-            // discard old items
         }
     }
 
@@ -34,19 +33,28 @@ public sealed class InMemoryMonitoringHistoryStore : IMonitoringHistoryStore
 
     public IReadOnlyList<MonitoringResultDto> GetRange(DateTimeOffset? from = null, DateTimeOffset? to = null)
     {
-        IEnumerable<MonitoringResultDto> query = _results.ToArray();
+        var result = new List<MonitoringResultDto>();
 
-        if (from is not null)
+        foreach (var item in _results)
         {
-            query = query.Where(r => r.StartedUtc >= from.Value);
+            if (from is not null && item.StartedUtc < from.Value)
+            {
+                continue;
+            }
+
+            if (to is not null && item.StartedUtc > to.Value)
+            {
+                continue;
+            }
+
+            result.Add(item);
         }
 
-        if (to is not null)
+        if (from is not null || to is not null)
         {
-            query = query.Where(r => r.StartedUtc <= to.Value);
+            result.Sort((a, b) => a.StartedUtc.CompareTo(b.StartedUtc));
         }
 
-        return query.OrderBy(r => r.StartedUtc).ToList();
+        return result;
     }
 }
-
