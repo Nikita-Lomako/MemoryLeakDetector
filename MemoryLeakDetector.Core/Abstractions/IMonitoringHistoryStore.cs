@@ -2,27 +2,15 @@ using MemoryLeakDetector.Core.Contracts;
 
 namespace MemoryLeakDetector.Core.Abstractions;
 
-/// <summary>
-/// Интерфейс для хранения истории результатов мониторинга.
-/// </summary>
+// Хранилище истории результатов мониторинга
 public interface IMonitoringHistoryStore
 {
-    /// <summary>
-    /// Добавляет результат мониторинга в хранилище.
-    /// </summary>
+    // Добавить результат в хранилище
     void Add(MonitoringResultDto result);
 
-    /// <summary>
-    /// Получает последний результат мониторинга.
-    /// </summary>
+    // Получить последний результат
     MonitoringResultDto? GetLatest();
 
-    /// <summary>
-    /// Получает диапазон результатов мониторинга за указанный период.
-    /// </summary>
-    /// <param name="from">Начальная дата (включительно). Если null, без ограничения.</param>
-    /// <param name="to">Конечная дата (включительно). Если null, без ограничения.</param>
-    /// <returns>Отсортированный список результатов мониторинга.</returns>
+    // Получить результаты за период (from/to могут быть null)
     IReadOnlyList<MonitoringResultDto> GetRange(DateTimeOffset? from = null, DateTimeOffset? to = null);
 }
-

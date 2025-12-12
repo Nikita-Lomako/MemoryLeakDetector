@@ -33,7 +33,14 @@ namespace MemoryLeakDetector.UI.Services.Monitoring
                 _dataProvider.Update(result);
                 _historyProvider.Add(result);
                 
-                var leakCount = result.Insights.Count(i => i.IsLeakSuspected);
+                // Оптимизация: считаем утечки без LINQ для производительности
+                var leakCount = 0;
+                foreach (var insight in result.Insights)
+                {
+                    if (insight.IsLeakSuspected)
+                        leakCount++;
+                }
+                
                 if (leakCount > 0)
                 {
                     _logger.LogInformation(

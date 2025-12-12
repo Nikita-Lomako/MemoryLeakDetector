@@ -1,5 +1,6 @@
 namespace MemoryLeakDetector.Core.Models;
 
+// Результат анализа процесса на утечку памяти
 public sealed class LeakDetectionInsight
 {
     public LeakDetectionInsight(
@@ -37,19 +38,6 @@ public sealed class LeakDetectionInsight
     public ProcessBaseline Baseline { get; }
     public ProcessMetricSnapshot Snapshot { get; }
 
-    /// <summary>
-    /// Текстовый стектрейс, зафиксированный при подозрении на утечку (может быть null).
-    /// </summary>
+    // Стектрейс при обнаружении утечки (может быть null)
     public string? StackTrace { get; set; }
-
-    /// <summary>
-    /// Имя стратегии обнаружения (например, "threshold", "ml-anomaly").
-    /// </summary>
-    public string DetectionStrategy { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Дополнительный числовой "скор" аномалии (для будущих ML-стратегий).
-    /// </summary>
-    public double? AnomalyScore { get; set; }
 }
-

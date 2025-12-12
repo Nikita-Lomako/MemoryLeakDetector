@@ -49,27 +49,42 @@ namespace MemoryLeakDetector.UI.ViewModels
 
         private void Refresh()
         {
-            var snapshots = _dataProvider.GetProcesses();
-
-            void Apply()
+            try
             {
-                _processes.Clear();
-                foreach (var snapshot in snapshots)
+                var snapshots = _dataProvider.GetProcesses();
+
+                void Apply()
                 {
-                    _processes.Add(snapshot);
+                    try
+                    {
+                        _processes.Clear();
+                        foreach (var snapshot in snapshots)
+                        {
+                            _processes.Add(snapshot);
+                        }
+
+                        LastUpdated = DateTime.Now;
+                        ProcessesView.Refresh();
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error in ProcessesViewModel.Apply: {ex.Message}");
+                    }
                 }
 
-                LastUpdated = DateTime.Now;
-                ProcessesView.Refresh();
+                // Используем BeginInvoke для неблокирующего обновления
+                if (!_dispatcher.CheckAccess())
+                {
+                    _dispatcher.BeginInvoke(Apply, System.Windows.Threading.DispatcherPriority.Background);
+                }
+                else
+                {
+                    Apply();
+                }
             }
-
-            if (!_dispatcher.CheckAccess())
+            catch (Exception ex)
             {
-                _dispatcher.Invoke(Apply);
-            }
-            else
-            {
-                Apply();
+                System.Diagnostics.Debug.WriteLine($"Error in ProcessesViewModel.Refresh: {ex.Message}");
             }
         }
 

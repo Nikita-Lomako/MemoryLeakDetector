@@ -19,6 +19,7 @@ using Microsoft.Extensions.Options;
 
 namespace MemoryLeakDetector.Service.Services;
 
+// Публикует результаты мониторинга через Named Pipe для UI клиентов
 [SupportedOSPlatform("windows")]
 public sealed class NamedPipeMonitoringPublisher : BackgroundService
 {
@@ -52,6 +53,7 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
 
         try
         {
+            // Читаем результаты и рассылаем клиентам
             await foreach (var result in _resultStream.ReadAllAsync(stoppingToken).ConfigureAwait(false))
             {
                 await BroadcastAsync(result, stoppingToken).ConfigureAwait(false);
@@ -63,6 +65,7 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
         }
     }
 
+    // Цикл приема новых подключений
     private async Task AcceptLoopAsync(CancellationToken token)
     {
         while (!token.IsCancellationRequested)
@@ -83,7 +86,7 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
                 }
 
                 _logger.LogInformation("Monitoring client #{ClientId} connected", id);
-                server = null; // ownership transferred to the connection
+                server = null; // ownership transferred
             }
             catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
@@ -99,24 +102,42 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
         }
     }
 
+    // Рассылка данных всем клиентам
     private async Task BroadcastAsync(MonitoringResultDto result, CancellationToken token)
     {
+        // Сериализуем вне lock
         var payload = JsonSerializer.Serialize(result, _serializerOptions);
 
+        // Копируем список клиентов
+        var clientsSnapshot = new List<(int Id, PipeClientConnection Connection)>();
         await _broadcastLock.WaitAsync(token).ConfigureAwait(false);
         try
         {
-            var disconnected = new List<int>();
-
             foreach (var (clientId, connection) in _clients)
             {
-                if (!connection.Stream.IsConnected)
-                {
-                    disconnected.Add(clientId);
-                    connection.Dispose();
-                    continue;
-                }
+                clientsSnapshot.Add((clientId, connection));
+            }
+        }
+        finally
+        {
+            _broadcastLock.Release();
+        }
 
+        // Отправляем всем параллельно
+        var disconnected = new List<int>();
+        var sendTasks = new List<Task>();
+
+        foreach (var (clientId, connection) in clientsSnapshot)
+        {
+            if (!connection.Stream.IsConnected)
+            {
+                disconnected.Add(clientId);
+                connection.Dispose();
+                continue;
+            }
+
+            var sendTask = Task.Run(async () =>
+            {
                 try
                 {
                     await connection.Writer.WriteLineAsync(payload).ConfigureAwait(false);
@@ -131,16 +152,38 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
                 {
                     disconnected.Add(clientId);
                 }
-            }
+            }, token);
 
-            foreach (var id in disconnected)
-            {
-                _clients.TryRemove(id, out _);
-            }
+            sendTasks.Add(sendTask);
         }
-        finally
+
+        // Ждем с таймаутом
+        try
         {
-            _broadcastLock.Release();
+            using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+            timeoutCts.CancelAfter(TimeSpan.FromSeconds(5));
+            await Task.WhenAll(sendTasks).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (token.IsCancellationRequested == false)
+        {
+            _logger.LogWarning("Broadcast timeout - some clients may not have received the update");
+        }
+
+        // Чистим отключенных
+        if (disconnected.Count > 0)
+        {
+            await _broadcastLock.WaitAsync(token).ConfigureAwait(false);
+            try
+            {
+                foreach (var id in disconnected)
+                {
+                    _clients.TryRemove(id, out _);
+                }
+            }
+            finally
+            {
+                _broadcastLock.Release();
+            }
         }
     }
 
@@ -161,16 +204,14 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
         _logger.LogWarning(ex, "Failed to configure pipe security, falling back to defaults");
     }
 
-    // Ваша версия .NET не поддерживает конструктор с PipeSecurity,
-    // поэтому используем доступный конструктор без последнего параметра
     return new NamedPipeServerStream(
         _options.PipeName,
         PipeDirection.Out,
         _options.MaxServerConnections,
         PipeTransmissionMode.Byte,
         PipeOptions.Asynchronous,
-        0, // inBufferSize
-        0  // outBufferSize
+        0,
+        0
     );
     }
 
@@ -196,6 +237,7 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
         return base.StopAsync(cancellationToken);
     }
 
+    // Внутренний класс для подключения клиента
     private sealed class PipeClientConnection : IDisposable
     {
         public PipeClientConnection(int id, NamedPipeServerStream stream, Encoding encoding)
@@ -218,19 +260,13 @@ public sealed class NamedPipeMonitoringPublisher : BackgroundService
             {
                 Writer.Dispose();
             }
-            catch
-            {
-                // ignored
-            }
+            catch { }
 
             try
             {
                 Stream.Dispose();
             }
-            catch
-            {
-                // ignored
-            }
+            catch { }
         }
     }
 }
